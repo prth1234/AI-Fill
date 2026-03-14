@@ -63,8 +63,8 @@ export default function AutoFillPage() {
           setProgress(p.data.progress || 0);
           if (p.data.log) addLog(p.data.log, p.data.level || 'info');
           if (p.data.status === 'paused') { setStatus('paused'); clearInterval(poll); }
-          if (p.data.status === 'done') { setStatus('done'); setProgress(100); clearInterval(poll); addLog('✅ AutoFill complete!', 'success'); }
-          if (p.data.status === 'error') { setStatus('error'); clearInterval(poll); addLog(`❌ ${p.data.error}`, 'error'); }
+          if (p.data.status === 'done') { setStatus('done'); setProgress(100); clearInterval(poll); addLog('AutoFill complete!', 'success'); }
+          if (p.data.status === 'error') { setStatus('error'); clearInterval(poll); addLog(`Error: ${p.data.error}`, 'error'); }
         } catch { clearInterval(poll); }
       }, 1500);
     } catch (err) {
@@ -137,13 +137,13 @@ export default function AutoFillPage() {
                 loading={status === 'running'}
                 disabled={!url || status === 'running' || status === 'paused'}
               >
-                {status === 'running' ? 'Running…' : '🚀 Launch AutoFill'}
+                {status === 'running' ? 'Running...' : 'Launch AutoFill'}
               </Button>
               {(status === 'running' || status === 'paused') && (
                 <Button variant="normal" iconName="close" onClick={handleStop}>Stop Session</Button>
               )}
               {status === 'paused' && (
-                <Button variant="primary" iconName="check" onClick={handleApprove}>✅ Approve & Submit</Button>
+                <Button variant="primary" iconName="check" onClick={handleApprove}>Approve &amp; Submit</Button>
               )}
             </SpaceBetween>
           </SpaceBetween>
@@ -158,7 +158,7 @@ export default function AutoFillPage() {
                 status === 'done' ? 'success' : 'error'
               }>
                 {status === 'running' ? 'AutoFill in progress…' :
-                 status === 'paused' ? '⏸ Paused — Review and approve submission' :
+                 status === 'paused' ? 'Paused — Review and approve submission' :
                  status === 'done' ? 'Application submitted successfully!' : 'Session ended with errors'}
               </StatusIndicator>
               <ProgressBar

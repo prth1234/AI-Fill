@@ -61,11 +61,7 @@ export default function DashboardPage() {
       }
     >
       <SpaceBetween size="l">
-        {backendOk === false && (
-          <Alert type="warning" header="Backend not connected">
-            The backend server is not running. Start it with <code>npm start</code> inside the <code>backend/</code> folder.
-          </Alert>
-        )}
+
 
         <ColumnLayout columns={4}>
           <StatBox label="Applications Filled" value={stats?.totalFilled ?? '—'} description="All time" />
@@ -74,15 +70,7 @@ export default function DashboardPage() {
           <StatBox label="Profile Completeness" value={stats?.profileComplete ?? '—'} description="%" />
         </ColumnLayout>
 
-        <Container header={<Header variant="h2">Backend Status</Header>}>
-          <SpaceBetween size="s">
-            <StatusIndicator type={backendOk === null ? 'loading' : backendOk ? 'success' : 'error'}>
-              Express API — {backendOk === null ? 'Checking…' : backendOk ? 'Connected on :4000' : 'Not running'}
-            </StatusIndicator>
-            <StatusIndicator type="pending">OpenSearch — Not connected (run opensearch locally)</StatusIndicator>
-            <StatusIndicator type="pending">Playwright Engine — Idle</StatusIndicator>
-          </SpaceBetween>
-        </Container>
+
 
         <Cards
           cardDefinition={{
@@ -93,9 +81,9 @@ export default function DashboardPage() {
             ],
           }}
           items={[
-            { title: '1️⃣  Set Up Your Profile', desc: 'Fill in your personal info, work history, education, skills, and job preferences. The AI will use this to fill every application field.', cta: 'Start Profile', action: () => navigate('/profile') },
-            { title: '2️⃣  Launch AutoFill', desc: 'Enter a job posting URL (Workday, Greenhouse, Lever, etc.) and let the AI + Playwright engine fill the entire application for you.', cta: 'Launch Now', action: () => navigate('/autofill') },
-            { title: '3️⃣  Review & Submit', desc: 'Before the bot submits, you get a final review screen to confirm all answers. You stay in control, always.', cta: 'View History', action: () => navigate('/jobs') },
+            { title: '1.  Set Up Your Profile', desc: 'Fill in your personal info, work history, education, skills, and job preferences. The AI will use this to fill every application field.', cta: 'Start Profile', action: () => navigate('/profile') },
+            { title: '2.  Launch AutoFill', desc: 'Enter a job posting URL (Workday, Greenhouse, Lever, etc.) and let the AI + Playwright engine fill the entire application for you.', cta: 'Launch Now', action: () => navigate('/autofill') },
+            { title: '3.  Review & Submit', desc: 'Before the bot submits, you get a final review screen to confirm all answers. You stay in control, always.', cta: 'View History', action: () => navigate('/jobs') },
           ]}
           columns={3}
         />
@@ -103,15 +91,15 @@ export default function DashboardPage() {
         <Container header={<Header variant="h2">How It Works</Header>}>
           <ColumnLayout columns={3} variant="text-grid">
             <div>
-              <Box variant="h3">🧠 AI Context Layer</Box>
+              <Box variant="h3">AI Context Layer</Box>
               <Box variant="p">Your profile is stored in OpenSearch (vector DB). When filling a form, the LLM retrieves semantically relevant chunks — so it always picks the right job for the right field.</Box>
             </div>
             <div>
-              <Box variant="h3">🤖 Playwright Automation</Box>
+              <Box variant="h3">Playwright Automation</Box>
               <Box variant="p">Playwright navigates the job application portal, identifies form fields, sends them to the LLM, and types the AI-generated answers — exactly like a human would.</Box>
             </div>
             <div>
-              <Box variant="h3">✅ Human-in-the-Loop</Box>
+              <Box variant="h3">Human-in-the-Loop</Box>
               <Box variant="p">Before any submission, the AI pauses and shows you a review screen. You can correct any mistakes before the bot clicks "Submit".</Box>
             </div>
           </ColumnLayout>

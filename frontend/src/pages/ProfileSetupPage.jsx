@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Wizard from '@cloudscape-design/components/wizard';
 import Container from '@cloudscape-design/components/container';
 import Header from '@cloudscape-design/components/header';
@@ -13,786 +13,505 @@ import Button from '@cloudscape-design/components/button';
 import Box from '@cloudscape-design/components/box';
 import Alert from '@cloudscape-design/components/alert';
 import Badge from '@cloudscape-design/components/badge';
-import Cards from '@cloudscape-design/components/cards';
 import Toggle from '@cloudscape-design/components/toggle';
 import Slider from '@cloudscape-design/components/slider';
 import DatePicker from '@cloudscape-design/components/date-picker';
 import AttributeEditor from '@cloudscape-design/components/attribute-editor';
 import ExpandableSection from '@cloudscape-design/components/expandable-section';
+import FileUpload from '@cloudscape-design/components/file-upload';
+import FileDropzone from '@cloudscape-design/components/file-dropzone';
+import TokenGroup from '@cloudscape-design/components/token-group';
+import Grid from '@cloudscape-design/components/grid';
 import axios from 'axios';
+import CustomFieldBuilder from '../components/CustomFieldBuilder';
+import { STANDARD_FIELDS, TEMPLATES } from '../fieldSchema';
 
 const API = 'http://localhost:4000/api';
 
-// ─── Step 1: Personal Info ────────────────────────────────────────────────────
-function PersonalInfo({ data, onChange }) {
-  const f = (k) => ({ value: data[k] || '', onChange: ({ detail }) => onChange(k, detail.value) });
+// ─── Utility Components & Context ──────────────────────────────────────────────
+export const EditModeContext = React.createContext({ editMode: false, onRemove: () => {} });
+
+function DismissibleField({ id, activeFields, children }) {
+  const { editMode, onRemove } = React.useContext(EditModeContext);
+  const isActive = activeFields.includes(id);
+
+  // If not active and not in edit mode, hide completely for a clean UI
+  if (!isActive && !editMode) return null;
+
+  return (
+    <div style={{
+      position: 'relative',
+      opacity: isActive ? 1 : 0.4,
+      pointerEvents: isActive ? 'auto' : 'none',
+      marginTop: 8,
+      padding: editMode ? '4px' : '0'
+    }}>
+      {children}
+      {editMode && isActive && (
+        <div style={{ position: 'absolute', top: -4, right: -4, pointerEvents: 'auto', zIndex: 10 }}>
+           <Button variant="inline-icon" iconName="close" onClick={() => onRemove(id)} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StepWrapper({ title, sections, activeFields, onAdd, onRemove, children }) {
+  const [editMode, setEditMode] = useState(false);
+  
+  // Collect all inactive fields for the allowed sections
+  const inactive = STANDARD_FIELDS.filter(f => sections.includes(f.section) && !activeFields.includes(f.id));
+
   return (
     <SpaceBetween size="l">
+      <Box float="right">
+        <Button 
+          iconName={editMode ? "check" : "edit"} 
+          onClick={() => setEditMode(!editMode)}
+          variant={editMode ? "primary" : "normal"}
+        >
+          {editMode ? "Done Editing" : "Customize Layout"}
+        </Button>
+      </Box>
+      <div style={{ clear: 'both' }} />
+
+      {editMode && (
+        <Alert 
+          type="info" 
+          header="Field Customization Mode"
+        >
+          Click the 'X' on any field below to remove it. You can re-enable hidden fields here:
+          {inactive.length > 0 ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
+              {inactive.map(f => (
+                <button
+                  key={f.id} type="button" onClick={() => onAdd(f.id)}
+                  style={{ background: '#e0f2fe', border: '1px solid #7dd3fc', color: '#0284c7', padding: '6px 14px', borderRadius: '9999px', fontSize: '13px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                  {f.label} (Recommended)
+                </button>
+              ))}
+            </div>
+          ) : (
+            <Box margin={{ top: 'xs' }} color="text-status-success">All available template fields are currently active!</Box>
+          )}
+        </Alert>
+      )}
+
+      <EditModeContext.Provider value={{ editMode, onRemove }}>
+        {children}
+      </EditModeContext.Provider>
+    </SpaceBetween>
+  );
+}
+
+// ─── Step 1: Personal Info ────────────────────────────────────────────────────
+function PersonalInfo({ data, onChange, activeFields, onAdd, onRemove, customFields, onCustomFieldsChange }) {
+  const [files, setFiles] = useState([]);
+  const fileInputRef = React.useRef(null);
+  const f = (k) => ({ value: data[k] || '', onChange: ({ detail }) => onChange(k, detail.value) });
+
+  const handleFileDropzoneChange = ({ detail }) => setFiles(detail.value);
+  const handleNativeInputChange = (e) => {
+    if (e.target.files && e.target.files.length > 0) setFiles(Array.from(e.target.files));
+  };
+
+  return (
+    <StepWrapper sections={['personal']} activeFields={activeFields} onAdd={onAdd} onRemove={onRemove}>
+      <SpaceBetween size="l">
+        <Container header={<Header variant="h2">Resume Auto-Fill</Header>}>
+          <SpaceBetween size="m">
+            <Alert type="info">Upload your resume to automatically extract and populate these fields using AI.</Alert>
+            <FormField label="Upload Resume (PDF, DOCX)">
+              <div onClick={() => fileInputRef.current?.click()} style={{ cursor: 'pointer' }}>
+                <FileDropzone onChange={handleFileDropzoneChange} value={files}>
+                  <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                    <strong>Drop your resume here (Click or Drag)</strong>
+                    <div style={{ color: '#6b7280', fontSize: '13px', marginTop: '4px' }}>PDF or DOCX documents</div>
+                  </div>
+                </FileDropzone>
+              </div>
+              <input type="file" ref={fileInputRef} hidden accept=".pdf,.docx" onChange={handleNativeInputChange} />
+              
+              {files.length > 0 && (
+                <Box margin={{ top: 's' }}>
+                  <TokenGroup
+                    items={files.map(f => ({ label: f.name }))}
+                    onDismiss={({ detail }) => setFiles(files.filter((_, i) => i !== detail.itemIndex))}
+                  />
+                </Box>
+              )}
+            </FormField>
+            <FormField label="Auto-fill with AI">
+              <Toggle disabled checked={false}>Enable AI Extraction (Coming Soon)</Toggle>
+            </FormField>
+          </SpaceBetween>
+        </Container>
+
       <Container header={<Header variant="h2">Basic Details</Header>}>
         <SpaceBetween size="m">
           <ColumnLayout columns={2}>
-            <FormField label="First Name" constraintText="As it appears on official documents">
-              <Input {...f('firstName')} placeholder="e.g. Parth" />
-            </FormField>
-            <FormField label="Last Name">
-              <Input {...f('lastName')} placeholder="e.g. Sharma" />
-            </FormField>
+            <DismissibleField id="firstName" activeFields={activeFields}><FormField label="First Name"><Input {...f('firstName')} placeholder="e.g. John" /></FormField></DismissibleField>
+            <DismissibleField id="lastName" activeFields={activeFields}><FormField label="Last Name"><Input {...f('lastName')} placeholder="e.g. Doe" /></FormField></DismissibleField>
           </ColumnLayout>
           <ColumnLayout columns={2}>
-            <FormField label="Email Address">
-              <Input {...f('email')} type="email" placeholder="parth@example.com" />
-            </FormField>
-            <FormField label="Phone Number" constraintText="Include country code">
-              <Input {...f('phone')} placeholder="+1 (555) 000-0000" />
-            </FormField>
+            <DismissibleField id="email" activeFields={activeFields}><FormField label="Email Address"><Input {...f('email')} type="email" placeholder="john@example.com" /></FormField></DismissibleField>
+            <DismissibleField id="phone" activeFields={activeFields}>
+              <FormField label="Phone Number">
+                <Grid gridDefinition={[{ colspan: 4 }, { colspan: 5 }, { colspan: 3 }]}>
+                  <Select
+                    selectedOption={data.phoneCode ? { label: data.phoneCode, value: data.phoneCode } : null}
+                    onChange={({ detail }) => onChange('phoneCode', detail.selectedOption.value)}
+                    options={[{ label: '+1 (US)', value: '+1 (US)' }, { label: '+44 (UK)', value: '+44 (UK)' }, { label: '+91 (IN)', value: '+91 (IN)' }]}
+                    placeholder="Code"
+                  />
+                  <Input value={data.phone || ''} onChange={({ detail }) => onChange('phone', detail.value)} placeholder="Phone number" />
+                  <Select
+                    selectedOption={data.phoneType ? { label: data.phoneType, value: data.phoneType } : null}
+                    onChange={({ detail }) => onChange('phoneType', detail.selectedOption.value)}
+                    options={[{ label: 'Mobile', value: 'Mobile' }, { label: 'Home', value: 'Home' }, { label: 'Work', value: 'Work' }]}
+                    placeholder="Type"
+                  />
+                </Grid>
+              </FormField>
+            </DismissibleField>
           </ColumnLayout>
           <ColumnLayout columns={2}>
-            <FormField label="LinkedIn URL">
-              <Input {...f('linkedin')} placeholder="https://linkedin.com/in/yourprofile" />
-            </FormField>
-            <FormField label="GitHub / Portfolio URL">
-              <Input {...f('github')} placeholder="https://github.com/yourusername" />
-            </FormField>
+            <DismissibleField id="linkedin" activeFields={activeFields}><FormField label="LinkedIn URL"><Input {...f('linkedin')} placeholder="https://linkedin.com/in/johndoe" /></FormField></DismissibleField>
+            <DismissibleField id="github" activeFields={activeFields}><FormField label="GitHub / Portfolio URL"><Input {...f('github')} placeholder="https://github.com/johndoe" /></FormField></DismissibleField>
           </ColumnLayout>
-          <FormField label="Personal Website">
-            <Input {...f('website')} placeholder="https://yourwebsite.com" />
-          </FormField>
+          <DismissibleField id="website" activeFields={activeFields}><FormField label="Personal Website"><Input {...f('website')} placeholder="https://johndoe.com" /></FormField></DismissibleField>
         </SpaceBetween>
       </Container>
 
       <Container header={<Header variant="h2">Location & Eligibility</Header>}>
         <SpaceBetween size="m">
           <ColumnLayout columns={3}>
-            <FormField label="City">
-              <Input {...f('city')} placeholder="San Francisco" />
-            </FormField>
-            <FormField label="State / Province">
-              <Input {...f('state')} placeholder="California" />
-            </FormField>
-            <FormField label="Country">
-              <Input {...f('country')} placeholder="United States" />
-            </FormField>
+            <DismissibleField id="city" activeFields={activeFields}><FormField label="City"><Input {...f('city')} placeholder="San Francisco" /></FormField></DismissibleField>
+            <DismissibleField id="state" activeFields={activeFields}><FormField label="State / Province"><Input {...f('state')} placeholder="CA" /></FormField></DismissibleField>
+            <DismissibleField id="country" activeFields={activeFields}><FormField label="Country"><Input {...f('country')} placeholder="United States" /></FormField></DismissibleField>
           </ColumnLayout>
           <ColumnLayout columns={2}>
-            <FormField label="ZIP / Postal Code">
-              <Input {...f('zipcode')} placeholder="94105" />
-            </FormField>
-            <FormField label="Work Authorization">
-              <Select
-                selectedOption={data.workAuth || null}
-                onChange={({ detail }) => onChange('workAuth', detail.selectedOption)}
-                options={[
-                  { label: 'US Citizen', value: 'us_citizen' },
-                  { label: 'Green Card / PR', value: 'green_card' },
-                  { label: 'H-1B Visa', value: 'h1b' },
-                  { label: 'OPT / CPT', value: 'opt_cpt' },
-                  { label: 'TN Visa', value: 'tn' },
-                  { label: 'Other Work Visa', value: 'other_visa' },
-                  { label: 'Canadian Citizen', value: 'ca_citizen' },
-                  { label: 'UK / EU Citizen', value: 'eu_citizen' },
-                  { label: 'No Authorization', value: 'none' },
-                ]}
-                placeholder="Select authorization"
-              />
-            </FormField>
+            <DismissibleField id="zipcode" activeFields={activeFields}><FormField label="ZIP / Postal Code"><Input {...f('zipcode')} placeholder="12345" /></FormField></DismissibleField>
+            <DismissibleField id="workAuth" activeFields={activeFields}>
+              <FormField label="Work Authorization">
+                <Select
+                  placeholder="Select Authorization"
+                  selectedOption={data.workAuth || null}
+                  onChange={({ detail }) => onChange('workAuth', detail.selectedOption)}
+                  options={[{ label: 'US Citizen', value: 'us' }, { label: 'Green Card', value: 'gc' }, { label: 'H1B Visa', value: 'h1b' }, { label: 'No Auth', value: 'none' }]}
+                />
+              </FormField>
+            </DismissibleField>
           </ColumnLayout>
           <ColumnLayout columns={2}>
-            <FormField label="Willing to Relocate?">
-              <Toggle checked={data.willingToRelocate || false} onChange={({ detail }) => onChange('willingToRelocate', detail.checked)}>
-                {data.willingToRelocate ? 'Yes' : 'No'}
-              </Toggle>
-            </FormField>
-            <FormField label="Date of Birth (optional)">
-              <DatePicker
-                value={data.dob || ''}
-                onChange={({ detail }) => onChange('dob', detail.value)}
-                placeholder="YYYY/MM/DD"
-              />
-            </FormField>
+            <DismissibleField id="willingToRelocate" activeFields={activeFields}>
+              <FormField label="Willing to Relocate?">
+                <Toggle checked={data.willingToRelocate || false} onChange={({ detail }) => onChange('willingToRelocate', detail.checked)}>
+                  {data.willingToRelocate ? 'Yes' : 'No'}
+                </Toggle>
+              </FormField>
+            </DismissibleField>
+            <DismissibleField id="dob" activeFields={activeFields}>
+              <FormField label="Date of Birth"><DatePicker value={data.dob || ''} onChange={({ detail }) => onChange('dob', detail.value)} /></FormField>
+            </DismissibleField>
           </ColumnLayout>
         </SpaceBetween>
       </Container>
 
       <Container header={<Header variant="h2">Professional Summary</Header>}>
-        <FormField label="Elevator Pitch / Summary" constraintText="2–4 sentences about who you are professionally">
-          <Textarea
-            value={data.summary || ''}
-            onChange={({ detail }) => onChange('summary', detail.value)}
-            placeholder="Experienced software engineer with 5+ years building scalable distributed systems at high-growth startups. Passionate about ML infrastructure and developer tooling..."
-            rows={5}
-          />
-        </FormField>
+        <DismissibleField id="summary" activeFields={activeFields}>
+          <FormField label="Elevator Pitch / Summary">
+            <Textarea placeholder="Brief overview of your background..." value={data.summary || ''} onChange={({ detail }) => onChange('summary', detail.value)} rows={5} />
+          </FormField>
+        </DismissibleField>
       </Container>
-    </SpaceBetween>
+
+      <CustomFieldBuilder fields={customFields} onChange={onCustomFieldsChange} sectionTitle="Additional Personal Info" />
+      </SpaceBetween>
+    </StepWrapper>
   );
 }
 
 // ─── Step 2: Work Experience ──────────────────────────────────────────────────
-function WorkExperience({ data, onChange }) {
+function WorkExperience({ data, onChange, activeFields, onAdd, onRemove, customFields, onCustomFieldsChange }) {
   const exps = data.experiences || [];
 
-  const addExp = () => {
-    onChange('experiences', [...exps, {
-      id: Date.now(), company: '', title: '', startDate: '', endDate: '',
-      current: false, location: '', description: '', achievements: '', employmentType: null,
-    }]);
-  };
-
-  const updateExp = (idx, key, val) => {
-    const updated = exps.map((e, i) => i === idx ? { ...e, [key]: val } : e);
-    onChange('experiences', updated);
-  };
-
+  const updateExp = (idx, key, val) => onChange('experiences', exps.map((e, i) => i === idx ? { ...e, [key]: val } : e));
   const removeExp = (idx) => onChange('experiences', exps.filter((_, i) => i !== idx));
 
   return (
-    <SpaceBetween size="l">
-      <Alert type="info">
-        Add all your work experiences. The AI will use these to intelligently fill job application forms.
-        Be as detailed as possible with descriptions and achievements.
-      </Alert>
-      {exps.map((exp, idx) => (
-        <Container
-          key={exp.id}
-          header={
-            <Header
-              variant="h2"
-              actions={<Button variant="icon" iconName="remove" onClick={() => removeExp(idx)} />}
-            >
-              {exp.company || `Experience ${idx + 1}`}
-            </Header>
-          }
-        >
+    <StepWrapper sections={['work']} activeFields={activeFields} onAdd={onAdd} onRemove={onRemove}>
+      <SpaceBetween size="l">
+        {exps.map((exp, idx) => (
+        <Container key={exp.id} header={<Header variant="h2" actions={<Button variant="icon" iconName="remove" onClick={() => removeExp(idx)} />}>{exp.company || `Experience ${idx + 1}`}</Header>}>
           <SpaceBetween size="m">
             <ColumnLayout columns={2}>
-              <FormField label="Company Name">
-                <Input value={exp.company} onChange={({ detail }) => updateExp(idx, 'company', detail.value)} placeholder="Google" />
-              </FormField>
-              <FormField label="Job Title / Role">
-                <Input value={exp.title} onChange={({ detail }) => updateExp(idx, 'title', detail.value)} placeholder="Senior Software Engineer" />
-              </FormField>
+              <DismissibleField id="work_company" activeFields={activeFields}><FormField label="Company Name"><Input placeholder="E.g. Apple" value={exp.company} onChange={({ detail }) => updateExp(idx, 'company', detail.value)} /></FormField></DismissibleField>
+              <DismissibleField id="work_title" activeFields={activeFields}><FormField label="Job Title / Role"><Input placeholder="Software Engineer" value={exp.title} onChange={({ detail }) => updateExp(idx, 'title', detail.value)} /></FormField></DismissibleField>
             </ColumnLayout>
             <ColumnLayout columns={2}>
-              <FormField label="Employment Type">
-                <Select
-                  selectedOption={exp.employmentType}
-                  onChange={({ detail }) => updateExp(idx, 'employmentType', detail.selectedOption)}
-                  options={[
-                    { label: 'Full-time', value: 'full_time' },
-                    { label: 'Part-time', value: 'part_time' },
-                    { label: 'Contract', value: 'contract' },
-                    { label: 'Internship', value: 'internship' },
-                    { label: 'Freelance', value: 'freelance' },
-                  ]}
-                  placeholder="Select type"
-                />
-              </FormField>
-              <FormField label="Location">
-                <Input value={exp.location} onChange={({ detail }) => updateExp(idx, 'location', detail.value)} placeholder="San Francisco, CA / Remote" />
-              </FormField>
+              <DismissibleField id="work_empType" activeFields={activeFields}>
+                <FormField label="Employment Type">
+                  <Select placeholder="Select type" selectedOption={exp.employmentType} onChange={({ detail }) => updateExp(idx, 'employmentType', detail.selectedOption)} options={[{ label: 'Full-time', value: 'ft' }, { label: 'Contract', value: 'c' }]} />
+                </FormField>
+              </DismissibleField>
+              <DismissibleField id="work_location" activeFields={activeFields}><FormField label="Location"><Input placeholder="City, State" value={exp.location} onChange={({ detail }) => updateExp(idx, 'location', detail.value)} /></FormField></DismissibleField>
             </ColumnLayout>
             <ColumnLayout columns={3}>
-              <FormField label="Start Date">
-                <DatePicker value={exp.startDate} onChange={({ detail }) => updateExp(idx, 'startDate', detail.value)} placeholder="YYYY/MM/DD" />
-              </FormField>
-              <FormField label="End Date">
-                <DatePicker value={exp.endDate} onChange={({ detail }) => updateExp(idx, 'endDate', detail.value)} placeholder="YYYY/MM/DD" disabled={exp.current} />
-              </FormField>
-              <FormField label="Currently Working Here">
-                <Toggle checked={exp.current} onChange={({ detail }) => updateExp(idx, 'current', detail.checked)}>
-                  {exp.current ? 'Yes' : 'No'}
-                </Toggle>
-              </FormField>
+              <DismissibleField id="work_start" activeFields={activeFields}><FormField label="Start Date"><DatePicker placeholder="YYYY/MM" value={exp.startDate} onChange={({ detail }) => updateExp(idx, 'startDate', detail.value)} /></FormField></DismissibleField>
+              <DismissibleField id="work_end" activeFields={activeFields}><FormField label="End Date"><DatePicker placeholder="YYYY/MM" value={exp.endDate} onChange={({ detail }) => updateExp(idx, 'endDate', detail.value)} disabled={exp.current} /></FormField></DismissibleField>
+              <DismissibleField id="work_current" activeFields={activeFields}><FormField label="Current?"><Toggle checked={exp.current} onChange={({ detail }) => updateExp(idx, 'current', detail.checked)}>Currently working here</Toggle></FormField></DismissibleField>
             </ColumnLayout>
-            <FormField label="Role Description" constraintText="What did you do? Key responsibilities">
-              <Textarea
-                value={exp.description}
-                onChange={({ detail }) => updateExp(idx, 'description', detail.value)}
-                placeholder="Led the design and implementation of a microservices architecture serving 10M+ daily active users..."
-                rows={4}
-              />
-            </FormField>
-            <FormField label="Key Achievements" constraintText="Quantify impact wherever possible">
-              <Textarea
-                value={exp.achievements}
-                onChange={({ detail }) => updateExp(idx, 'achievements', detail.value)}
-                placeholder="• Reduced API latency by 40% through caching layer&#10;• Mentored 3 junior engineers&#10;• Shipped 0-to-1 product in 6 months"
-                rows={4}
-              />
-            </FormField>
+            <DismissibleField id="work_desc" activeFields={activeFields}><FormField label="Role Description"><Textarea placeholder="Describe your responsibilities..." value={exp.description} onChange={({ detail }) => updateExp(idx, 'description', detail.value)} rows={3} /></FormField></DismissibleField>
+            <DismissibleField id="work_achievements" activeFields={activeFields}><FormField label="Key Achievements"><Textarea placeholder="- Increased revenue by 25%..." value={exp.achievements} onChange={({ detail }) => updateExp(idx, 'achievements', detail.value)} rows={3} /></FormField></DismissibleField>
           </SpaceBetween>
         </Container>
       ))}
-      <Button iconName="add-plus" onClick={addExp}>Add Work Experience</Button>
-    </SpaceBetween>
+        <Button iconName="add-plus" onClick={() => onChange('experiences', [...exps, { id: Date.now() }])}>Add Work Experience</Button>
+        <CustomFieldBuilder fields={customFields} onChange={onCustomFieldsChange} sectionTitle="Additional Work Experience Fields" />
+      </SpaceBetween>
+    </StepWrapper>
   );
 }
 
 // ─── Step 3: Education ────────────────────────────────────────────────────────
-function Education({ data, onChange }) {
+function Education({ data, onChange, activeFields, onAdd, onRemove, customFields, onCustomFieldsChange }) {
   const edus = data.education || [];
-
-  const addEdu = () => {
-    onChange('education', [...edus, {
-      id: Date.now(), institution: '', degree: null, field: '', startDate: '', endDate: '',
-      gpa: '', activities: '', coursework: '',
-    }]);
-  };
-
-  const updateEdu = (idx, key, val) => {
-    onChange('education', edus.map((e, i) => i === idx ? { ...e, [key]: val } : e));
-  };
-
+  
+  const updateEdu = (idx, key, val) => onChange('education', edus.map((e, i) => i === idx ? { ...e, [key]: val } : e));
   const removeEdu = (idx) => onChange('education', edus.filter((_, i) => i !== idx));
 
   return (
-    <SpaceBetween size="l">
-      {edus.map((edu, idx) => (
-        <Container
-          key={edu.id}
-          header={
-            <Header variant="h2" actions={<Button variant="icon" iconName="remove" onClick={() => removeEdu(idx)} />}>
-              {edu.institution || `Education ${idx + 1}`}
-            </Header>
-          }
-        >
+    <StepWrapper sections={['education']} activeFields={activeFields} onAdd={onAdd} onRemove={onRemove}>
+      <SpaceBetween size="l">
+        {edus.map((edu, idx) => (
+        <Container key={edu.id} header={<Header variant="h2" actions={<Button variant="icon" iconName="remove" onClick={() => removeEdu(idx)} />}>{edu.institution || `Education ${idx + 1}`}</Header>}>
           <SpaceBetween size="m">
             <ColumnLayout columns={2}>
-              <FormField label="Institution Name">
-                <Input value={edu.institution} onChange={({ detail }) => updateEdu(idx, 'institution', detail.value)} placeholder="University of California, Berkeley" />
-              </FormField>
-              <FormField label="Degree Level">
-                <Select
-                  selectedOption={edu.degree}
-                  onChange={({ detail }) => updateEdu(idx, 'degree', detail.selectedOption)}
-                  options={[
-                    { label: "Bachelor's (B.S. / B.A.)", value: 'bachelors' },
-                    { label: "Master's (M.S. / M.A.)", value: 'masters' },
-                    { label: 'PhD / Doctorate', value: 'phd' },
-                    { label: 'Associate\'s', value: 'associates' },
-                    { label: 'Diploma / Certificate', value: 'diploma' },
-                    { label: 'Bootcamp', value: 'bootcamp' },
-                    { label: 'High School', value: 'high_school' },
-                  ]}
-                  placeholder="Select degree"
-                />
-              </FormField>
+              <DismissibleField id="edu_inst" activeFields={activeFields}><FormField label="Institution"><Input placeholder="E.g. Stanford University" value={edu.institution} onChange={({ detail }) => updateEdu(idx, 'institution', detail.value)} /></FormField></DismissibleField>
+              <DismissibleField id="edu_degree" activeFields={activeFields}><FormField label="Degree Level"><Select placeholder="Select degree" selectedOption={edu.degree} onChange={({ detail }) => updateEdu(idx, 'degree', detail.selectedOption)} options={[{label:'Bachelors',value:'bs'},{label:'Masters',value:'ms'}]} /></FormField></DismissibleField>
             </ColumnLayout>
             <ColumnLayout columns={2}>
-              <FormField label="Field of Study / Major">
-                <Input value={edu.field} onChange={({ detail }) => updateEdu(idx, 'field', detail.value)} placeholder="Computer Science" />
-              </FormField>
-              <FormField label="GPA (optional)">
-                <Input value={edu.gpa} onChange={({ detail }) => updateEdu(idx, 'gpa', detail.value)} placeholder="3.8 / 4.0" />
-              </FormField>
+              <DismissibleField id="edu_field" activeFields={activeFields}><FormField label="Field of Study"><Input placeholder="Computer Science" value={edu.field} onChange={({ detail }) => updateEdu(idx, 'field', detail.value)} /></FormField></DismissibleField>
+              <DismissibleField id="edu_gpa" activeFields={activeFields}><FormField label="GPA"><Input placeholder="3.8 / 4.0" value={edu.gpa} onChange={({ detail }) => updateEdu(idx, 'gpa', detail.value)} /></FormField></DismissibleField>
             </ColumnLayout>
             <ColumnLayout columns={2}>
-              <FormField label="Start Date">
-                <DatePicker value={edu.startDate} onChange={({ detail }) => updateEdu(idx, 'startDate', detail.value)} placeholder="YYYY/MM/DD" />
-              </FormField>
-              <FormField label="Graduation Date">
-                <DatePicker value={edu.endDate} onChange={({ detail }) => updateEdu(idx, 'endDate', detail.value)} placeholder="YYYY/MM/DD" />
-              </FormField>
+              <DismissibleField id="edu_start" activeFields={activeFields}><FormField label="Start Date"><DatePicker placeholder="YYYY/MM" value={edu.startDate} onChange={({ detail }) => updateEdu(idx, 'startDate', detail.value)} /></FormField></DismissibleField>
+              <DismissibleField id="edu_end" activeFields={activeFields}><FormField label="Graduation Date"><DatePicker placeholder="YYYY/MM" value={edu.endDate} onChange={({ detail }) => updateEdu(idx, 'endDate', detail.value)} /></FormField></DismissibleField>
             </ColumnLayout>
-            <FormField label="Relevant Coursework">
-              <Input value={edu.coursework} onChange={({ detail }) => updateEdu(idx, 'coursework', detail.value)} placeholder="Data Structures, Algorithms, ML, Distributed Systems" />
-            </FormField>
-            <FormField label="Clubs / Activities / Honors">
-              <Textarea value={edu.activities} onChange={({ detail }) => updateEdu(idx, 'activities', detail.value)} placeholder="ACM Club President, Dean's List, Research Assistant at HCI Lab" rows={3} />
-            </FormField>
+            <DismissibleField id="edu_coursework" activeFields={activeFields}><FormField label="Relevant Coursework"><Input placeholder="Algorithms, Data Structures..." value={edu.coursework} onChange={({ detail }) => updateEdu(idx, 'coursework', detail.value)} /></FormField></DismissibleField>
+            <DismissibleField id="edu_activities" activeFields={activeFields}><FormField label="Clubs / Honors"><Textarea placeholder="Dean's List, Robotics Club..." value={edu.activities} onChange={({ detail }) => updateEdu(idx, 'activities', detail.value)} rows={2} /></FormField></DismissibleField>
           </SpaceBetween>
         </Container>
       ))}
-      <Button iconName="add-plus" onClick={addEdu}>Add Education</Button>
-    </SpaceBetween>
+        <Button iconName="add-plus" onClick={() => onChange('education', [...edus, { id: Date.now() }])}>Add Education</Button>
+        <CustomFieldBuilder fields={customFields} onChange={onCustomFieldsChange} sectionTitle="Additional Education Fields" />
+      </SpaceBetween>
+    </StepWrapper>
   );
 }
 
-// ─── Step 4: Skills & Technologies ───────────────────────────────────────────
-const SKILL_OPTIONS = [
-  'Python','JavaScript','TypeScript','Java','Go','Rust','C++','C#','Ruby','Swift',
-  'Kotlin','React','Next.js','Vue.js','Angular','Node.js','FastAPI','Django','Spring Boot',
-  'PostgreSQL','MySQL','MongoDB','Redis','Elasticsearch','OpenSearch','Kafka','RabbitMQ',
-  'Docker','Kubernetes','Terraform','AWS','GCP','Azure','CI/CD','Git','Linux',
-  'PyTorch','TensorFlow','Scikit-learn','Pandas','Spark','Hadoop','dbt','Airflow',
-  'GraphQL','REST','gRPC','Microservices','LLMs','LangChain','Playwright','Selenium',
-].map(s => ({ label: s, value: s.toLowerCase().replace(/[.\s]/g, '_') }));
-
-function Skills({ data, onChange }) {
+// ─── Step 4: Skills ───────────────────────────────────────────────────────────
+function Skills({ data, onChange, activeFields, onAdd, customFields, onCustomFieldsChange, onRemove }) {
   return (
-    <SpaceBetween size="l">
-      <Container header={<Header variant="h2">Technical Skills</Header>}>
+    <StepWrapper sections={['skills']} activeFields={activeFields} onAdd={onAdd} onRemove={onRemove}>
+      <SpaceBetween size="l">
+        <Container header={<Header variant="h2">Technical Skills & Profile</Header>}>
         <SpaceBetween size="m">
-          <FormField label="Primary Programming Languages" constraintText="Languages you are most proficient in">
-            <Multiselect
-              selectedOptions={data.primaryLangs || []}
-              onChange={({ detail }) => onChange('primaryLangs', detail.selectedOptions)}
-              options={SKILL_OPTIONS.filter(s => ['python','javascript','typescript','java','go','rust','c++','c#','ruby','swift','kotlin'].includes(s.value))}
-              placeholder="Select languages"
-              filteringType="auto"
-            />
-          </FormField>
-          <FormField label="Frameworks & Libraries">
-            <Multiselect
-              selectedOptions={data.frameworks || []}
-              onChange={({ detail }) => onChange('frameworks', detail.selectedOptions)}
-              options={SKILL_OPTIONS}
-              placeholder="Select frameworks"
-              filteringType="auto"
-            />
-          </FormField>
-          <FormField label="Databases & Data Stores">
-            <Multiselect
-              selectedOptions={data.databases || []}
-              onChange={({ detail }) => onChange('databases', detail.selectedOptions)}
-              options={SKILL_OPTIONS.filter(s => ['postgresql','mysql','mongodb','redis','elasticsearch','opensearch','kafka','rabbitmq'].includes(s.value))}
-              placeholder="Select databases"
-              filteringType="auto"
-            />
-          </FormField>
-          <FormField label="Cloud & DevOps">
-            <Multiselect
-              selectedOptions={data.cloudDevops || []}
-              onChange={({ detail }) => onChange('cloudDevops', detail.selectedOptions)}
-              options={SKILL_OPTIONS.filter(s => ['docker','kubernetes','terraform','aws','gcp','azure','ci_cd','git','linux'].includes(s.value))}
-              placeholder="Select tools"
-              filteringType="auto"
-            />
-          </FormField>
-          <FormField label="AI / ML Tools">
-            <Multiselect
-              selectedOptions={data.aiMl || []}
-              onChange={({ detail }) => onChange('aiMl', detail.selectedOptions)}
-              options={SKILL_OPTIONS.filter(s => ['pytorch','tensorflow','scikit-learn','pandas','spark','hadoop','dbt','airflow','llms','langchain'].includes(s.value.replace(/_/g,'-')))}
-              placeholder="Select AI/ML tools"
-              filteringType="auto"
-            />
-          </FormField>
-          <FormField label="Other Skills (comma-separated)">
-            <Input value={data.otherSkills || ''} onChange={({ detail }) => onChange('otherSkills', detail.value)} placeholder="System Design, Agile/Scrum, Technical Writing, Public Speaking" />
-          </FormField>
+          <DismissibleField id="skills_langs" activeFields={activeFields}><FormField label="Primary Languages"><Multiselect placeholder="Select languages..." selectedOptions={data.langs||[]} onChange={({detail})=>onChange('langs',detail.selectedOptions)} options={[{label:'Python',value:'py'},{label:'JavaScript',value:'js'}]}/></FormField></DismissibleField>
+          <DismissibleField id="skills_frameworks" activeFields={activeFields}><FormField label="Frameworks"><Multiselect placeholder="Select frameworks..." selectedOptions={data.frameworks||[]} onChange={({detail})=>onChange('frameworks',detail.selectedOptions)} options={[{label:'React',value:'react'},{label:'Node.js',value:'node'}]}/></FormField></DismissibleField>
+          <DismissibleField id="skills_db" activeFields={activeFields}><FormField label="Databases"><Multiselect placeholder="Select databases..." selectedOptions={data.dbs||[]} onChange={({detail})=>onChange('dbs',detail.selectedOptions)} options={[{label:'Postgres',value:'pg'}]}/></FormField></DismissibleField>
+          <DismissibleField id="skills_cloud" activeFields={activeFields}><FormField label="Cloud & DevOps"><Multiselect placeholder="Select tools..." selectedOptions={data.cloud||[]} onChange={({detail})=>onChange('cloud',detail.selectedOptions)} options={[{label:'AWS',value:'aws'}]}/></FormField></DismissibleField>
+          <DismissibleField id="skills_aiml" activeFields={activeFields}><FormField label="AI/ML Tools"><Multiselect placeholder="Select AI defaults..." selectedOptions={data.aiml||[]} onChange={({detail})=>onChange('aiml',detail.selectedOptions)} options={[{label:'PyTorch',value:'pt'}]}/></FormField></DismissibleField>
+          <DismissibleField id="skills_other" activeFields={activeFields}><FormField label="Other Skills"><Input placeholder="HTML, CSS, Git..." value={data.other||''} onChange={({detail})=>onChange('other',detail.value)}/></FormField></DismissibleField>
+          <DismissibleField id="skills_yoe" activeFields={activeFields}><FormField label={`Total Experience: ${data.yoe||0} yrs`}><Slider value={data.yoe||0} onChange={({detail})=>onChange('yoe',detail.value)} max={25}/></FormField></DismissibleField>
         </SpaceBetween>
       </Container>
-
-      <Container header={<Header variant="h2">Years of Total Experience</Header>}>
-        <FormField label={`Total Professional Experience: ${data.totalYears || 0} years`}>
-          <Slider
-            value={data.totalYears || 0}
-            onChange={({ detail }) => onChange('totalYears', detail.value)}
-            min={0} max={25} step={1}
-            referenceValues={[0, 5, 10, 15, 20, 25]}
-          />
-        </FormField>
-      </Container>
-
-      <Container header={<Header variant="h2">Languages Spoken</Header>}>
-        <AttributeEditor
-          items={data.languages || []}
-          onAddButtonClick={() => onChange('languages', [...(data.languages || []), { language: '', proficiency: null }])}
-          onRemoveButtonClick={({ detail: { itemIndex } }) =>
-            onChange('languages', (data.languages || []).filter((_, i) => i !== itemIndex))
-          }
-          addButtonText="Add Language"
-          definition={[
-            {
-              label: 'Language',
-              control: (item, itemIndex) => (
-                <Input
-                  value={item.language}
-                  onChange={({ detail }) => {
-                    const updated = [...(data.languages || [])];
-                    updated[itemIndex] = { ...item, language: detail.value };
-                    onChange('languages', updated);
-                  }}
-                  placeholder="Spanish"
-                />
-              ),
-            },
-            {
-              label: 'Proficiency',
-              control: (item, itemIndex) => (
-                <Select
-                  selectedOption={item.proficiency}
-                  onChange={({ detail }) => {
-                    const updated = [...(data.languages || [])];
-                    updated[itemIndex] = { ...item, proficiency: detail.selectedOption };
-                    onChange('languages', updated);
-                  }}
-                  options={[
-                    { label: 'Native', value: 'native' },
-                    { label: 'Fluent', value: 'fluent' },
-                    { label: 'Professional', value: 'professional' },
-                    { label: 'Conversational', value: 'conversational' },
-                    { label: 'Basic', value: 'basic' },
-                  ]}
-                  placeholder="Select level"
-                />
-              ),
-            },
-          ]}
-          empty="No languages added"
-        />
-      </Container>
-    </SpaceBetween>
+        <CustomFieldBuilder fields={customFields} onChange={onCustomFieldsChange} sectionTitle="Additional Skills" />
+      </SpaceBetween>
+    </StepWrapper>
   );
 }
 
-// ─── Step 5: Certifications & Projects ───────────────────────────────────────
-function CertsAndProjects({ data, onChange }) {
-  const certs = data.certifications || [];
-  const projects = data.projects || [];
+// ─── Step 5: Certs & Projects ──────────────────────────────────────────────────
+function CertsAndProjects({ data, onChange, activeFields, onAdd, onRemove, customFields, onCustomFieldsChange }) {
+  const certs = data.certs || [];
+  const projs = data.projs || [];
 
-  const addCert = () => onChange('certifications', [...certs, { id: Date.now(), name: '', issuer: '', date: '', credentialId: '', url: '' }]);
-  const updateCert = (idx, key, val) => onChange('certifications', certs.map((c, i) => i === idx ? { ...c, [key]: val } : c));
-  const removeCert = (idx) => onChange('certifications', certs.filter((_, i) => i !== idx));
-
-  const addProject = () => onChange('projects', [...projects, { id: Date.now(), name: '', description: '', techStack: '', url: '', impact: '' }]);
-  const updateProject = (idx, key, val) => onChange('projects', projects.map((p, i) => i === idx ? { ...p, [key]: val } : p));
-  const removeProject = (idx) => onChange('projects', projects.filter((_, i) => i !== idx));
+  const update = (arr, list, idx, key, val) => onChange(arr, list.map((x, i) => i === idx ? {...x, [key]: val} : x));
+  const remove = (arr, list, idx) => onChange(arr, list.filter((_, i) => i !== idx));
 
   return (
-    <SpaceBetween size="l">
-      <Container header={<Header variant="h2">Certifications</Header>}>
+    <StepWrapper sections={['certs', 'projects']} activeFields={activeFields} onAdd={onAdd} onRemove={onRemove}>
+      <SpaceBetween size="l">
+        <Container header={<Header variant="h2">Certifications</Header>}>
         <SpaceBetween size="m">
-          {certs.map((cert, idx) => (
-            <ExpandableSection
-              key={cert.id}
-              headerText={cert.name || `Certification ${idx + 1}`}
-              headerActions={<Button variant="icon" iconName="remove" onClick={() => removeCert(idx)} />}
-            >
-              <SpaceBetween size="m">
-                <ColumnLayout columns={2}>
-                  <FormField label="Certification Name">
-                    <Input value={cert.name} onChange={({ detail }) => updateCert(idx, 'name', detail.value)} placeholder="AWS Solutions Architect" />
-                  </FormField>
-                  <FormField label="Issuing Organization">
-                    <Input value={cert.issuer} onChange={({ detail }) => updateCert(idx, 'issuer', detail.value)} placeholder="Amazon Web Services" />
-                  </FormField>
-                </ColumnLayout>
-                <ColumnLayout columns={3}>
-                  <FormField label="Issue Date">
-                    <DatePicker value={cert.date} onChange={({ detail }) => updateCert(idx, 'date', detail.value)} placeholder="YYYY/MM/DD" />
-                  </FormField>
-                  <FormField label="Credential ID">
-                    <Input value={cert.credentialId} onChange={({ detail }) => updateCert(idx, 'credentialId', detail.value)} placeholder="ABC123XYZ" />
-                  </FormField>
-                  <FormField label="Credential URL">
-                    <Input value={cert.url} onChange={({ detail }) => updateCert(idx, 'url', detail.value)} placeholder="https://..." />
-                  </FormField>
-                </ColumnLayout>
-              </SpaceBetween>
+          {certs.map((c, idx) => (
+            <ExpandableSection key={c.id} headerText={c.name||`Cert ${idx+1}`} headerActions={<Button variant="icon" iconName="remove" onClick={()=>remove('certs',certs,idx)}/>}>
+              <ColumnLayout columns={2}>
+                <DismissibleField id="cert_name" activeFields={activeFields}><FormField label="Name"><Input value={c.name} onChange={({detail})=>update('certs',certs,idx,'name',detail.value)}/></FormField></DismissibleField>
+                <DismissibleField id="cert_issuer" activeFields={activeFields}><FormField label="Issuer"><Input value={c.issuer} onChange={({detail})=>update('certs',certs,idx,'issuer',detail.value)}/></FormField></DismissibleField>
+              </ColumnLayout>
+              <ColumnLayout columns={3}>
+                <DismissibleField id="cert_date" activeFields={activeFields}><FormField label="Date"><DatePicker value={c.date} onChange={({detail})=>update('certs',certs,idx,'date',detail.value)}/></FormField></DismissibleField>
+                <DismissibleField id="cert_credId" activeFields={activeFields}><FormField label="Credential ID"><Input value={c.credId} onChange={({detail})=>update('certs',certs,idx,'credId',detail.value)}/></FormField></DismissibleField>
+                <DismissibleField id="cert_url" activeFields={activeFields}><FormField label="URL"><Input value={c.url} onChange={({detail})=>update('certs',certs,idx,'url',detail.value)}/></FormField></DismissibleField>
+              </ColumnLayout>
             </ExpandableSection>
           ))}
-          <Button iconName="add-plus" onClick={addCert}>Add Certification</Button>
+          <Button iconName="add-plus" onClick={()=>onChange('certs', [...certs, {id: Date.now()}])}>Add Cert</Button>
         </SpaceBetween>
       </Container>
 
       <Container header={<Header variant="h2">Projects</Header>}>
         <SpaceBetween size="m">
-          {projects.map((proj, idx) => (
-            <ExpandableSection
-              key={proj.id}
-              headerText={proj.name || `Project ${idx + 1}`}
-              headerActions={<Button variant="icon" iconName="remove" onClick={() => removeProject(idx)} />}
-            >
-              <SpaceBetween size="m">
-                <ColumnLayout columns={2}>
-                  <FormField label="Project Name">
-                    <Input value={proj.name} onChange={({ detail }) => updateProject(idx, 'name', detail.value)} placeholder="AI AutoFill Bot" />
-                  </FormField>
-                  <FormField label="Project URL / Repo">
-                    <Input value={proj.url} onChange={({ detail }) => updateProject(idx, 'url', detail.value)} placeholder="https://github.com/..." />
-                  </FormField>
-                </ColumnLayout>
-                <FormField label="Tech Stack Used">
-                  <Input value={proj.techStack} onChange={({ detail }) => updateProject(idx, 'techStack', detail.value)} placeholder="Python, Playwright, OpenSearch, LangChain" />
-                </FormField>
-                <FormField label="Description">
-                  <Textarea value={proj.description} onChange={({ detail }) => updateProject(idx, 'description', detail.value)} placeholder="Built an AI-powered tool that automatically fills job applications..." rows={3} />
-                </FormField>
-                <FormField label="Impact / Results">
-                  <Input value={proj.impact} onChange={({ detail }) => updateProject(idx, 'impact', detail.value)} placeholder="Saved 10+ hours/week, 200+ GitHub stars" />
-                </FormField>
-              </SpaceBetween>
+          {projs.map((p, idx) => (
+            <ExpandableSection key={p.id} headerText={p.name||`Project ${idx+1}`} headerActions={<Button variant="icon" iconName="remove" onClick={()=>remove('projs',projs,idx)}/>}>
+              <ColumnLayout columns={2}>
+                <DismissibleField id="proj_name" activeFields={activeFields}><FormField label="Name"><Input placeholder="E.g. AI Workflow" value={p.name} onChange={({detail})=>update('projs',projs,idx,'name',detail.value)}/></FormField></DismissibleField>
+                <DismissibleField id="proj_url" activeFields={activeFields}><FormField label="URL"><Input placeholder="https://github.com/..." value={p.url} onChange={({detail})=>update('projs',projs,idx,'url',detail.value)}/></FormField></DismissibleField>
+              </ColumnLayout>
+              <DismissibleField id="proj_stack" activeFields={activeFields}><FormField label="Tech Stack"><Input placeholder="React, Node.js..." value={p.stack} onChange={({detail})=>update('projs',projs,idx,'stack',detail.value)}/></FormField></DismissibleField>
+              <DismissibleField id="proj_desc" activeFields={activeFields}><FormField label="Description"><Textarea placeholder="Built a responsive app..." value={p.desc} onChange={({detail})=>update('projs',projs,idx,'desc',detail.value)}/></FormField></DismissibleField>
+              <DismissibleField id="proj_impact" activeFields={activeFields}><FormField label="Impact"><Input placeholder="Improved perf by 20%" value={p.impact} onChange={({detail})=>update('projs',projs,idx,'impact',detail.value)}/></FormField></DismissibleField>
             </ExpandableSection>
           ))}
-          <Button iconName="add-plus" onClick={addProject}>Add Project</Button>
+          <Button iconName="add-plus" onClick={()=>onChange('projs', [...projs, {id: Date.now()}])}>Add Project</Button>
         </SpaceBetween>
       </Container>
-    </SpaceBetween>
+
+        <CustomFieldBuilder fields={customFields} onChange={onCustomFieldsChange} sectionTitle="Additional Certs & Projects" />
+      </SpaceBetween>
+    </StepWrapper>
   );
 }
 
-// ─── Step 6: Job Preferences ──────────────────────────────────────────────────
-function JobPreferences({ data, onChange }) {
+// ─── Step 6: Preferences ──────────────────────────────────────────────────────
+function JobPreferences({ data, onChange, activeFields, onAdd, customFields, onCustomFieldsChange, onRemove }) {
   const f = (k) => ({ value: data[k] || '', onChange: ({ detail }) => onChange(k, detail.value) });
+
   return (
-    <SpaceBetween size="l">
-      <Container header={<Header variant="h2">Target Roles</Header>}>
+    <StepWrapper sections={['preferences']} activeFields={activeFields} onAdd={onAdd} onRemove={onRemove}>
+      <SpaceBetween size="l">
+        <Container header={<Header variant="h2">Target Profile Properties</Header>}>
         <SpaceBetween size="m">
-          <FormField label="Desired Job Titles" constraintText="Comma-separated list">
-            <Input {...f('desiredRoles')} placeholder="Software Engineer, Backend Engineer, Platform Engineer" />
-          </FormField>
-          <FormField label="Target Industries">
-            <Multiselect
-              selectedOptions={data.targetIndustries || []}
-              onChange={({ detail }) => onChange('targetIndustries', detail.selectedOptions)}
-              options={[
-                { label: 'Technology / Software', value: 'tech' },
-                { label: 'Fintech / Finance', value: 'fintech' },
-                { label: 'Healthcare / Biotech', value: 'health' },
-                { label: 'AI / ML', value: 'ai_ml' },
-                { label: 'E-Commerce / Retail', value: 'ecommerce' },
-                { label: 'Cybersecurity', value: 'security' },
-                { label: 'Gaming', value: 'gaming' },
-                { label: 'Education / EdTech', value: 'edtech' },
-                { label: 'Government / Defense', value: 'gov' },
-                { label: 'Consulting', value: 'consulting' },
-                { label: 'Startup', value: 'startup' },
-              ]}
-              placeholder="Select industries"
-            />
-          </FormField>
-          <FormField label="Work Mode Preference">
-            <Select
-              selectedOption={data.workMode || null}
-              onChange={({ detail }) => onChange('workMode', detail.selectedOption)}
-              options={[
-                { label: 'Remote Only', value: 'remote' },
-                { label: 'Hybrid', value: 'hybrid' },
-                { label: 'On-site / In-office', value: 'onsite' },
-                { label: 'Flexible', value: 'flexible' },
-              ]}
-              placeholder="Select work mode"
-            />
-          </FormField>
-        </SpaceBetween>
-      </Container>
-
-      <Container header={<Header variant="h2">Compensation Expectations</Header>}>
-        <SpaceBetween size="m">
+          <DismissibleField id="pref_roles" activeFields={activeFields}><FormField label="Desired Job Titles"><Input {...f('desiredRoles')} /></FormField></DismissibleField>
+          <DismissibleField id="pref_industries" activeFields={activeFields}><FormField label="Target Industries"><Multiselect onChange={({detail})=>onChange('industries', detail.selectedOptions)} selectedOptions={data.industries||[]} options={[{label:'Tech',value:'tech'}]} /></FormField></DismissibleField>
+          <DismissibleField id="pref_workMode" activeFields={activeFields}><FormField label="Work Mode"><Select onChange={({detail})=>onChange('workMode', detail.selectedOption)} selectedOption={data.workMode||null} options={[{label:'Remote',value:'remote'},{label:'Hybrid',value:'hybrid'}]} /></FormField></DismissibleField>
+          
           <ColumnLayout columns={2}>
-            <FormField label="Minimum Expected Salary (USD/yr)">
-              <Input {...f('salaryMin')} placeholder="120000" />
-            </FormField>
-            <FormField label="Target / Ideal Salary (USD/yr)">
-              <Input {...f('salaryMax')} placeholder="160000" />
-            </FormField>
+            <DismissibleField id="pref_salaryMin" activeFields={activeFields}><FormField label="Min Salary"><Input {...f('salaryMin')} /></FormField></DismissibleField>
+            <DismissibleField id="pref_salaryMax" activeFields={activeFields}><FormField label="Max Salary"><Input {...f('salaryMax')} /></FormField></DismissibleField>
           </ColumnLayout>
-          <FormField label="Employment Type Preference">
-            <Multiselect
-              selectedOptions={data.empTypes || []}
-              onChange={({ detail }) => onChange('empTypes', detail.selectedOptions)}
-              options={[
-                { label: 'Full-time', value: 'full_time' },
-                { label: 'Contract', value: 'contract' },
-                { label: 'Part-time', value: 'part_time' },
-                { label: 'Internship', value: 'internship' },
-              ]}
-              placeholder="Select types"
-            />
-          </FormField>
-          <FormField label="Earliest Start Date (Notice Period)">
-            <Select
-              selectedOption={data.noticePeriod || null}
-              onChange={({ detail }) => onChange('noticePeriod', detail.selectedOption)}
-              options={[
-                { label: 'Immediately', value: 'immediate' },
-                { label: '2 weeks', value: '2w' },
-                { label: '1 month', value: '1m' },
-                { label: '2 months', value: '2m' },
-                { label: '3 months', value: '3m' },
-              ]}
-              placeholder="Select notice period"
-            />
-          </FormField>
-        </SpaceBetween>
-      </Container>
-
-      <Container header={<Header variant="h2">AutoFill Behaviour</Header>}>
-        <SpaceBetween size="m">
-          <FormField label="Cover Letter Style">
-            <Select
-              selectedOption={data.coverLetterStyle || null}
-              onChange={({ detail }) => onChange('coverLetterStyle', detail.selectedOption)}
-              options={[
-                { label: 'Professional & Formal', value: 'formal' },
-                { label: 'Conversational & Friendly', value: 'conversational' },
-                { label: 'Technical & Detail-oriented', value: 'technical' },
-                { label: 'Brief & Punchy', value: 'brief' },
-              ]}
-              placeholder="Select style"
-            />
-          </FormField>
-          <FormField label="Custom AutoFill Notes" constraintText="Extra instructions for the AI when filling forms">
-            <Textarea
-              value={data.autofillNotes || ''}
-              onChange={({ detail }) => onChange('autofillNotes', detail.value)}
-              placeholder="Always mention my open-source contributions. Skip diversity survey questions. Use my GitHub profile for portfolio links."
-              rows={4}
-            />
-          </FormField>
+          
+          <DismissibleField id="pref_empTypes" activeFields={activeFields}><FormField label="Employment Type Preference"><Multiselect onChange={({detail})=>onChange('empTypes', detail.selectedOptions)} selectedOptions={data.empTypes||[]} options={[{label:'Full-time',value:'ft'}]} /></FormField></DismissibleField>
+          <DismissibleField id="pref_notice" activeFields={activeFields}><FormField label="Notice Period"><Select onChange={({detail})=>onChange('notice', detail.selectedOption)} selectedOption={data.notice||null} options={[{label:'Immediate',value:'imm'}]} /></FormField></DismissibleField>
+          <DismissibleField id="pref_cover" activeFields={activeFields}><FormField label="Cover Letter Style"><Select onChange={({detail})=>onChange('cover', detail.selectedOption)} selectedOption={data.cover||null} options={[{label:'Formal',value:'formal'}]} /></FormField></DismissibleField>
+          <DismissibleField id="pref_notes" activeFields={activeFields}><FormField label="Custom AutoFill Notes"><Textarea value={data.notes||''} onChange={({detail})=>onChange('notes',detail.value)} rows={3} /></FormField></DismissibleField>
+          
           <ColumnLayout columns={2}>
-            <FormField label="Pause Before Submission?">
-              <Toggle checked={data.pauseBeforeSubmit !== false} onChange={({ detail }) => onChange('pauseBeforeSubmit', detail.checked)}>
-                {data.pauseBeforeSubmit !== false ? 'Yes – let me review first' : 'No – auto-submit'}
-              </Toggle>
-            </FormField>
-            <FormField label="Generate Cover Letter Automatically?">
-              <Toggle checked={data.autoCoverLetter || false} onChange={({ detail }) => onChange('autoCoverLetter', detail.checked)}>
-                {data.autoCoverLetter ? 'Yes' : 'No'}
-              </Toggle>
-            </FormField>
+            <DismissibleField id="pref_pause" activeFields={activeFields}><FormField label="Pause Before Submission?"><Toggle checked={data.pause!==false} onChange={({detail})=>onChange('pause',detail.checked)}>Yes</Toggle></FormField></DismissibleField>
+            <DismissibleField id="pref_autoCover" activeFields={activeFields}><FormField label="Gen Cover Letter?"><Toggle checked={data.autoCover||false} onChange={({detail})=>onChange('autoCover',detail.checked)}>Yes</Toggle></FormField></DismissibleField>
           </ColumnLayout>
         </SpaceBetween>
       </Container>
-    </SpaceBetween>
+        <CustomFieldBuilder fields={customFields} onChange={onCustomFieldsChange} sectionTitle="Additional Preferences" />
+      </SpaceBetween>
+    </StepWrapper>
   );
 }
 
-// ─── Step 7: Review ───────────────────────────────────────────────────────────
-function Review({ profileData }) {
-  const p = profileData;
-  return (
-    <SpaceBetween size="l">
-      <Alert type="success" header="Almost done!">
-        Review your profile below before saving. Your data will be stored securely in OpenSearch and used by the AI AutoFill engine.
-      </Alert>
-      <Container header={<Header variant="h2">👤 Personal</Header>}>
-        <ColumnLayout columns={2} variant="text-grid">
-          <div><Box variant="awsui-key-label">Name</Box><div>{p.personal?.firstName} {p.personal?.lastName}</div></div>
-          <div><Box variant="awsui-key-label">Email</Box><div>{p.personal?.email || '—'}</div></div>
-          <div><Box variant="awsui-key-label">Phone</Box><div>{p.personal?.phone || '—'}</div></div>
-          <div><Box variant="awsui-key-label">Location</Box><div>{[p.personal?.city, p.personal?.state, p.personal?.country].filter(Boolean).join(', ') || '—'}</div></div>
-          <div><Box variant="awsui-key-label">Work Auth</Box><div>{p.personal?.workAuth?.label || '—'}</div></div>
-          <div><Box variant="awsui-key-label">LinkedIn</Box><div>{p.personal?.linkedin || '—'}</div></div>
-        </ColumnLayout>
-      </Container>
-      <Container header={<Header variant="h2">💼 Experience</Header>}>
-        <SpaceBetween size="s">
-          {(p.workExp?.experiences || []).map((e, i) => (
-            <div key={i}><Badge color="blue">{e.employmentType?.label || 'Full-time'}</Badge>{' '}<strong>{e.title}</strong> @ {e.company} ({e.startDate} – {e.current ? 'Present' : e.endDate})</div>
-          ))}
-          {!(p.workExp?.experiences?.length) && <Box color="text-status-inactive">No experience added</Box>}
-        </SpaceBetween>
-      </Container>
-      <Container header={<Header variant="h2">🎓 Education</Header>}>
-        <SpaceBetween size="s">
-          {(p.education?.education || []).map((e, i) => (
-            <div key={i}><strong>{e.degree?.label || ''}</strong> in {e.field} — {e.institution} {e.gpa ? `(GPA: ${e.gpa})` : ''}</div>
-          ))}
-          {!(p.education?.education?.length) && <Box color="text-status-inactive">No education added</Box>}
-        </SpaceBetween>
-      </Container>
-      <Container header={<Header variant="h2">⚡ Skills</Header>}>
-        <SpaceBetween size="xs">
-          {(p.skills?.primaryLangs || []).map(s => <Badge key={s.value} color="green">{s.label}</Badge>)}
-          {(p.skills?.frameworks || []).map(s => <Badge key={s.value} color="blue">{s.label}</Badge>)}
-          {(p.skills?.cloudDevops || []).map(s => <Badge key={s.value} color="severity-medium">{s.label}</Badge>)}
-        </SpaceBetween>
-      </Container>
-      <Container header={<Header variant="h2">🎯 Job Preferences</Header>}>
-        <ColumnLayout columns={2} variant="text-grid">
-          <div><Box variant="awsui-key-label">Target Roles</Box><div>{p.preferences?.desiredRoles || '—'}</div></div>
-          <div><Box variant="awsui-key-label">Work Mode</Box><div>{p.preferences?.workMode?.label || '—'}</div></div>
-          <div><Box variant="awsui-key-label">Salary Range</Box><div>{p.preferences?.salaryMin && p.preferences?.salaryMax ? `$${p.preferences.salaryMin} – $${p.preferences.salaryMax}` : '—'}</div></div>
-          <div><Box variant="awsui-key-label">Pause Before Submit</Box><div>{p.preferences?.pauseBeforeSubmit !== false ? 'Yes' : 'No'}</div></div>
-        </ColumnLayout>
-      </Container>
-    </SpaceBetween>
-  );
-}
-
-// ─── Main Wizard ──────────────────────────────────────────────────────────────
+// ─── Main Component ───────────────────────────────────────────────────────────
 export default function ProfileSetupPage() {
   const [activeStep, setActiveStep] = useState(0);
-  const [status, setStatus] = useState(null); // 'saving' | 'success' | 'error'
+  const [status, setStatus] = useState(null);
 
-  const [personal, setPersonal] = useState({});
-  const [workExp, setWorkExp] = useState({});
-  const [education, setEducation] = useState({});
-  const [skills, setSkills] = useState({});
-  const [certsProjects, setCertsProjects] = useState({});
-  const [preferences, setPreferences] = useState({ pauseBeforeSubmit: true });
+  // Field configurations
+  const [activeFields, setActiveFields] = useState(() => {
+    try {
+      const saved = localStorage.getItem('autofill_active_fields');
+      // "by default all will be enabled"
+      return saved ? JSON.parse(saved) : STANDARD_FIELDS.map(f => f.id);
+    } catch { return STANDARD_FIELDS.map(f => f.id); }
+  });
 
-  const profileData = { personal, workExp, education, skills, certsProjects, preferences };
+  const removeField = (id) => setActiveFields(prev => prev.filter(f => f !== id));
+  const addField = (id) => setActiveFields(prev => [...prev, id]);
 
   const updateSection = (setter) => (key, val) => setter(prev => ({ ...prev, [key]: val }));
 
+  // Data states
+  const [personal, setPersonal] = useState({});
+  const [workExp, setWorkExp] = useState({ experiences: [{ id: 1 }] });
+  const [education, setEducation] = useState({ education: [{ id: 1 }] });
+  const [skills, setSkills] = useState({});
+  const [certsProjects, setCertsProjects] = useState({ certs: [], projs: [] });
+  const [preferences, setPreferences] = useState({ pause: true });
+
+  // Custom Fields initialized from LocalStorage (What are you automating? setup)
+  useEffect(() => {
+    try {
+      const keys = JSON.parse(localStorage.getItem('autofill_custom_keys') || '[]');
+      if (keys.length > 0) {
+        setCustomPersonal(prev => {
+          if (prev.length === 0) {
+            return keys.map(k => ({ id: Date.now()+Math.random(), key: k, type: 'text', options: [], value: null }));
+          }
+          return prev;
+        });
+      }
+    } catch(e) {}
+  }, []);
+
+  const [customPersonal, setCustomPersonal] = useState([]);
+  const [customWork, setCustomWork] = useState([]);
+  const [customEducation, setCustomEducation] = useState([]);
+  const [customSkills, setCustomSkills] = useState([]);
+  const [customCerts, setCustomCerts] = useState([]);
+  const [customPrefs, setCustomPrefs] = useState([]);
+
+  const profileData = {
+    personal, workExp, education, skills, certsProjects, preferences,
+    customFields: { personal: customPersonal, work: customWork, education: customEducation, skills: customSkills, certs: customCerts, preferences: customPrefs },
+  };
+
   const handleSubmit = async () => {
     setStatus('saving');
-    try {
-      await axios.post(`${API}/profile`, profileData);
-      setStatus('success');
-    } catch (err) {
-      console.error(err);
-      setStatus('error');
-    }
+    try { await axios.post(`${API}/profile`, profileData); setStatus('success'); } 
+    catch(err) { setStatus('error'); }
   };
+
+  const stepProps = { activeFields, onAdd: addField, onRemove: removeField };
 
   return (
     <>
-      {status === 'success' && (
-        <Alert type="success" header="Profile saved!" dismissible onDismiss={() => setStatus(null)}>
-          Your profile has been saved to OpenSearch. The AI AutoFill engine is ready to use.
-        </Alert>
-      )}
-      {status === 'error' && (
-        <Alert type="error" header="Save failed" dismissible onDismiss={() => setStatus(null)}>
-          Could not connect to the backend. Make sure the server is running on port 4000.
-        </Alert>
-      )}
+      {status === 'success' && <Alert type="success" header="Saved!" dismissible onDismiss={() => setStatus(null)}>Profile saved</Alert>}
+      {status === 'error' && <Alert type="error" header="Failed!" dismissible onDismiss={() => setStatus(null)}>Error saving</Alert>}
       <Wizard
+        allowSkipTo={true}
         i18nStrings={{
-          stepNumberLabel: (n) => `Step ${n}`,
+          stepNumberLabel: n => `Step ${n}`,
           collapsedStepsLabel: (c, t) => `Step ${c} of ${t}`,
           navigationAriaLabel: 'Steps',
           cancelButton: 'Cancel',
           previousButton: 'Previous',
           nextButton: 'Next',
-          submitButton: status === 'saving' ? 'Saving…' : '💾 Save Profile',
+          submitButton: 'Save Profile',
           optional: 'optional',
         }}
-        onCancel={() => window.history.back()}
         onNavigate={({ detail }) => setActiveStep(detail.requestedStepIndex)}
         onSubmit={handleSubmit}
         activeStepIndex={activeStep}
         steps={[
-          {
-            title: 'Personal Information',
-            description: 'Your identity, contact details and location',
-            content: <PersonalInfo data={personal} onChange={updateSection(setPersonal)} />,
-          },
-          {
-            title: 'Work Experience',
-            description: 'Jobs, roles, and achievements',
-            content: <WorkExperience data={workExp} onChange={updateSection(setWorkExp)} />,
-          },
-          {
-            title: 'Education',
-            description: 'Degrees, institutions, and coursework',
-            content: <Education data={education} onChange={updateSection(setEducation)} />,
-          },
-          {
-            title: 'Skills & Technologies',
-            description: 'Technical stack, languages spoken, and experience level',
-            content: <Skills data={skills} onChange={updateSection(setSkills)} />,
-          },
-          {
-            title: 'Certifications & Projects',
-            description: 'Credentials and notable work',
-            content: <CertsAndProjects data={certsProjects} onChange={updateSection(setCertsProjects)} />,
-          },
-          {
-            title: 'Job Preferences',
-            description: 'Target roles, salary, and AutoFill behaviour',
-            content: <JobPreferences data={preferences} onChange={updateSection(setPreferences)} />,
-          },
-          {
-            title: 'Review & Save',
-            description: 'Confirm your profile before saving',
-            content: <Review profileData={profileData} />,
-          },
+          { title: 'Personal Information', content: <PersonalInfo data={personal} onChange={updateSection(setPersonal)} customFields={customPersonal} onCustomFieldsChange={setCustomPersonal} {...stepProps} /> },
+          { title: 'Work Experience', content: <WorkExperience data={workExp} onChange={updateSection(setWorkExp)} customFields={customWork} onCustomFieldsChange={setCustomWork} {...stepProps} /> },
+          { title: 'Education', content: <Education data={education} onChange={updateSection(setEducation)} customFields={customEducation} onCustomFieldsChange={setCustomEducation} {...stepProps} /> },
+          { title: 'Skills & Technologies', content: <Skills data={skills} onChange={updateSection(setSkills)} customFields={customSkills} onCustomFieldsChange={setCustomSkills} {...stepProps} /> },
+          { title: 'Certifications & Projects', content: <CertsAndProjects data={certsProjects} onChange={updateSection(setCertsProjects)} customFields={customCerts} onCustomFieldsChange={setCustomCerts} {...stepProps} /> },
+          { title: 'Job Preferences', content: <JobPreferences data={preferences} onChange={updateSection(setPreferences)} customFields={customPrefs} onCustomFieldsChange={setCustomPrefs} {...stepProps} /> },
+          { title: 'Review & Save', content: <Alert type="success">Review your profile configuration above. Your selections and custom fields define the structure of what the AI learns about you.</Alert> },
         ]}
       />
     </>
