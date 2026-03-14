@@ -56,7 +56,7 @@ function DismissibleField({ id, activeFields, children }) {
   );
 }
 
-function StepWrapper({ title, sections, activeFields, onAdd, onRemove, children }) {
+function StepWrapper({ title, sections, activeFields, onAdd, onRemove, children, layoutMode, onLayoutChange, hideLayoutToggle }) {
   const [editMode, setEditMode] = useState(() => {
     return localStorage.getItem(`profile_edit_mode_${sections.join('_')}`) === 'true';
   });
@@ -70,7 +70,7 @@ function StepWrapper({ title, sections, activeFields, onAdd, onRemove, children 
 
   return (
     <SpaceBetween size="l">
-      <Box float="right">
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '24px' }}>
         <Button 
           iconName={editMode ? "check" : "edit"} 
           onClick={() => setEditMode(!editMode)}
@@ -78,8 +78,15 @@ function StepWrapper({ title, sections, activeFields, onAdd, onRemove, children 
         >
           {editMode ? "Done Editing" : "Customize Layout"}
         </Button>
-      </Box>
-      <div style={{ clear: 'both' }} />
+        {!hideLayoutToggle && (
+          <Toggle
+            onChange={({ detail }) => onLayoutChange(detail.checked ? 'separate' : 'seamless')}
+            checked={layoutMode === 'separate'}
+          >
+            Separate sections
+          </Toggle>
+        )}
+      </div>
 
       {editMode && (
         <Alert 
@@ -113,7 +120,7 @@ function StepWrapper({ title, sections, activeFields, onAdd, onRemove, children 
 }
 
 // ─── Step 1: Personal Info ────────────────────────────────────────────────────
-function PersonalInfo({ data, onChange, activeFields, onAdd, onRemove, customFields, onCustomFieldsChange }) {
+function PersonalInfo({ data, onChange, activeFields, onAdd, onRemove, customFields, onCustomFieldsChange, layoutMode, onLayoutChange, hideLayoutToggle }) {
   const [files, setFiles] = useState([]);
   const fileInputRef = React.useRef(null);
   const f = (k) => ({ value: data[k] || '', onChange: ({ detail }) => onChange(k, detail.value) });
@@ -124,7 +131,7 @@ function PersonalInfo({ data, onChange, activeFields, onAdd, onRemove, customFie
   };
 
   return (
-    <StepWrapper sections={['personal']} activeFields={activeFields} onAdd={onAdd} onRemove={onRemove}>
+    <StepWrapper sections={['personal']} activeFields={activeFields} onAdd={onAdd} onRemove={onRemove} layoutMode={layoutMode} onLayoutChange={onLayoutChange} hideLayoutToggle={hideLayoutToggle}>
       <SpaceBetween size="l">
         <Container header={<Header variant="h2">Resume Auto-Fill</Header>}>
           <SpaceBetween size="m">
@@ -241,14 +248,14 @@ function PersonalInfo({ data, onChange, activeFields, onAdd, onRemove, customFie
 }
 
 // ─── Step 2: Work Experience ──────────────────────────────────────────────────
-function WorkExperience({ data, onChange, activeFields, onAdd, onRemove, customFields, onCustomFieldsChange }) {
+function WorkExperience({ data, onChange, activeFields, onAdd, onRemove, customFields, onCustomFieldsChange, layoutMode, onLayoutChange, hideLayoutToggle }) {
   const exps = data.experiences || [];
 
   const updateExp = (idx, key, val) => onChange('experiences', exps.map((e, i) => i === idx ? { ...e, [key]: val } : e));
   const removeExp = (idx) => onChange('experiences', exps.filter((_, i) => i !== idx));
 
   return (
-    <StepWrapper sections={['work']} activeFields={activeFields} onAdd={onAdd} onRemove={onRemove}>
+    <StepWrapper sections={['work']} activeFields={activeFields} onAdd={onAdd} onRemove={onRemove} layoutMode={layoutMode} onLayoutChange={onLayoutChange} hideLayoutToggle={hideLayoutToggle}>
       <SpaceBetween size="l">
         {exps.map((exp, idx) => (
         <Container key={exp.id} header={<Header variant="h2" actions={<Button variant="icon" iconName="remove" onClick={() => removeExp(idx)} />}>{exp.company || `Experience ${idx + 1}`}</Header>}>
@@ -283,14 +290,14 @@ function WorkExperience({ data, onChange, activeFields, onAdd, onRemove, customF
 }
 
 // ─── Step 3: Education ────────────────────────────────────────────────────────
-function Education({ data, onChange, activeFields, onAdd, onRemove, customFields, onCustomFieldsChange }) {
+function Education({ data, onChange, activeFields, onAdd, onRemove, customFields, onCustomFieldsChange, layoutMode, onLayoutChange, hideLayoutToggle }) {
   const edus = data.education || [];
   
   const updateEdu = (idx, key, val) => onChange('education', edus.map((e, i) => i === idx ? { ...e, [key]: val } : e));
   const removeEdu = (idx) => onChange('education', edus.filter((_, i) => i !== idx));
 
   return (
-    <StepWrapper sections={['education']} activeFields={activeFields} onAdd={onAdd} onRemove={onRemove}>
+    <StepWrapper sections={['education']} activeFields={activeFields} onAdd={onAdd} onRemove={onRemove} layoutMode={layoutMode} onLayoutChange={onLayoutChange} hideLayoutToggle={hideLayoutToggle}>
       <SpaceBetween size="l">
         {edus.map((edu, idx) => (
         <Container key={edu.id} header={<Header variant="h2" actions={<Button variant="icon" iconName="remove" onClick={() => removeEdu(idx)} />}>{edu.institution || `Education ${idx + 1}`}</Header>}>
@@ -320,9 +327,9 @@ function Education({ data, onChange, activeFields, onAdd, onRemove, customFields
 }
 
 // ─── Step 4: Skills ───────────────────────────────────────────────────────────
-function Skills({ data, onChange, activeFields, onAdd, customFields, onCustomFieldsChange, onRemove }) {
+function Skills({ data, onChange, activeFields, onAdd, customFields, onCustomFieldsChange, onRemove, layoutMode, onLayoutChange, hideLayoutToggle }) {
   return (
-    <StepWrapper sections={['skills']} activeFields={activeFields} onAdd={onAdd} onRemove={onRemove}>
+    <StepWrapper sections={['skills']} activeFields={activeFields} onAdd={onAdd} onRemove={onRemove} layoutMode={layoutMode} onLayoutChange={onLayoutChange} hideLayoutToggle={hideLayoutToggle}>
       <SpaceBetween size="l">
         <Container header={<Header variant="h2">Technical Skills & Profile</Header>}>
         <SpaceBetween size="m">
@@ -342,7 +349,7 @@ function Skills({ data, onChange, activeFields, onAdd, customFields, onCustomFie
 }
 
 // ─── Step 5: Certs & Projects ──────────────────────────────────────────────────
-function CertsAndProjects({ data, onChange, activeFields, onAdd, onRemove, customFields, onCustomFieldsChange }) {
+function CertsAndProjects({ data, onChange, activeFields, onAdd, onRemove, customFields, onCustomFieldsChange, layoutMode, onLayoutChange, hideLayoutToggle }) {
   const certs = data.certs || [];
   const projs = data.projs || [];
 
@@ -350,7 +357,7 @@ function CertsAndProjects({ data, onChange, activeFields, onAdd, onRemove, custo
   const remove = (arr, list, idx) => onChange(arr, list.filter((_, i) => i !== idx));
 
   return (
-    <StepWrapper sections={['certs', 'projects']} activeFields={activeFields} onAdd={onAdd} onRemove={onRemove}>
+    <StepWrapper sections={['certs', 'projects']} activeFields={activeFields} onAdd={onAdd} onRemove={onRemove} layoutMode={layoutMode} onLayoutChange={onLayoutChange} hideLayoutToggle={hideLayoutToggle}>
       <SpaceBetween size="l">
         <Container header={<Header variant="h2">Certifications</Header>}>
         <SpaceBetween size="m">
@@ -395,11 +402,11 @@ function CertsAndProjects({ data, onChange, activeFields, onAdd, onRemove, custo
 }
 
 // ─── Step 6: Preferences ──────────────────────────────────────────────────────
-function JobPreferences({ data, onChange, activeFields, onAdd, customFields, onCustomFieldsChange, onRemove }) {
+function JobPreferences({ data, onChange, activeFields, onAdd, customFields, onCustomFieldsChange, onRemove, layoutMode, onLayoutChange, hideLayoutToggle }) {
   const f = (k) => ({ value: data[k] || '', onChange: ({ detail }) => onChange(k, detail.value) });
 
   return (
-    <StepWrapper sections={['preferences']} activeFields={activeFields} onAdd={onAdd} onRemove={onRemove}>
+    <StepWrapper sections={['preferences']} activeFields={activeFields} onAdd={onAdd} onRemove={onRemove} layoutMode={layoutMode} onLayoutChange={onLayoutChange} hideLayoutToggle={hideLayoutToggle}>
       <SpaceBetween size="l">
         <Container header={<Header variant="h2">Target Profile Properties</Header>}>
         <SpaceBetween size="m">
@@ -446,6 +453,7 @@ export default function ProfileSetupPage() {
   }
 
   const [activeStep, setActiveStep] = usePersistedState('profile_active_step', 0);
+  const [layoutMode, setLayoutMode] = usePersistedState('profile_layout_mode', 'separate');
   const [status, setStatus] = useState(null);
 
   // Field configurations
@@ -497,37 +505,58 @@ export default function ProfileSetupPage() {
     catch(err) { setStatus('error'); }
   };
 
-  const stepProps = { activeFields, onAdd: addField, onRemove: removeField };
+  const stepProps = { activeFields, onAdd: addField, onRemove: removeField, layoutMode, onLayoutChange: setLayoutMode };
 
   return (
     <>
       {status === 'success' && <Alert type="success" header="Saved!" dismissible onDismiss={() => setStatus(null)}>Profile saved</Alert>}
       {status === 'error' && <Alert type="error" header="Failed!" dismissible onDismiss={() => setStatus(null)}>Error saving</Alert>}
-      <Wizard
-        allowSkipTo={true}
-        i18nStrings={{
-          stepNumberLabel: n => `Step ${n}`,
-          collapsedStepsLabel: (c, t) => `Step ${c} of ${t}`,
-          navigationAriaLabel: 'Steps',
-          cancelButton: 'Cancel',
-          previousButton: 'Previous',
-          nextButton: 'Next',
-          submitButton: 'Save Profile',
-          optional: 'optional',
-        }}
-        onNavigate={({ detail }) => setActiveStep(detail.requestedStepIndex)}
-        onSubmit={handleSubmit}
-        activeStepIndex={activeStep}
-        steps={[
-          { title: 'Personal Information', content: <PersonalInfo data={personal} onChange={updateSection(setPersonal)} customFields={customPersonal} onCustomFieldsChange={setCustomPersonal} {...stepProps} /> },
-          { title: 'Work Experience', content: <WorkExperience data={workExp} onChange={updateSection(setWorkExp)} customFields={customWork} onCustomFieldsChange={setCustomWork} {...stepProps} /> },
-          { title: 'Education', content: <Education data={education} onChange={updateSection(setEducation)} customFields={customEducation} onCustomFieldsChange={setCustomEducation} {...stepProps} /> },
-          { title: 'Skills & Technologies', content: <Skills data={skills} onChange={updateSection(setSkills)} customFields={customSkills} onCustomFieldsChange={setCustomSkills} {...stepProps} /> },
-          { title: 'Certifications & Projects', content: <CertsAndProjects data={certsProjects} onChange={updateSection(setCertsProjects)} customFields={customCerts} onCustomFieldsChange={setCustomCerts} {...stepProps} /> },
-          { title: 'Job Preferences', content: <JobPreferences data={preferences} onChange={updateSection(setPreferences)} customFields={customPrefs} onCustomFieldsChange={setCustomPrefs} {...stepProps} /> },
-          { title: 'Review & Save', content: <Alert type="success">Review your profile configuration above. Your selections and custom fields define the structure of what the AI learns about you.</Alert> },
-        ]}
-      />
+      
+      {layoutMode === 'separate' ? (
+        <Wizard
+          allowSkipTo={true}
+          i18nStrings={{
+            stepNumberLabel: n => `Step ${n}`,
+            collapsedStepsLabel: (c, t) => `Step ${c} of ${t}`,
+            navigationAriaLabel: 'Steps',
+            cancelButton: 'Cancel',
+            previousButton: 'Previous',
+            nextButton: 'Next',
+            submitButton: 'Save Profile',
+            optional: '',
+          }}
+          onNavigate={({ detail }) => setActiveStep(detail.requestedStepIndex)}
+          onSubmit={handleSubmit}
+          activeStepIndex={activeStep}
+          steps={[
+            { title: 'Personal Information', content: <PersonalInfo data={personal} onChange={updateSection(setPersonal)} customFields={customPersonal} onCustomFieldsChange={setCustomPersonal} {...stepProps} />, isOptional: true },
+            { title: 'Work Experience', content: <WorkExperience data={workExp} onChange={updateSection(setWorkExp)} customFields={customWork} onCustomFieldsChange={setCustomWork} {...stepProps} />, isOptional: true },
+            { title: 'Education', content: <Education data={education} onChange={updateSection(setEducation)} customFields={customEducation} onCustomFieldsChange={setCustomEducation} {...stepProps} />, isOptional: true },
+            { title: 'Skills & Technologies', content: <Skills data={skills} onChange={updateSection(setSkills)} customFields={customSkills} onCustomFieldsChange={setCustomSkills} {...stepProps} />, isOptional: true },
+            { title: 'Certifications & Projects', content: <CertsAndProjects data={certsProjects} onChange={updateSection(setCertsProjects)} customFields={customCerts} onCustomFieldsChange={setCustomCerts} {...stepProps} />, isOptional: true },
+            { title: 'Job Preferences', content: <JobPreferences data={preferences} onChange={updateSection(setPreferences)} customFields={customPrefs} onCustomFieldsChange={setCustomPrefs} {...stepProps} />, isOptional: true },
+            { title: 'Review & Save', content: <Alert type="success">Review your profile configuration above. Your selections and custom fields define the structure of what the AI learns about you.</Alert>, isOptional: true },
+          ]}
+        />
+      ) : (
+        <SpaceBetween size="xxl">
+          <PersonalInfo data={personal} onChange={updateSection(setPersonal)} customFields={customPersonal} onCustomFieldsChange={setCustomPersonal} {...stepProps} />
+          <WorkExperience data={workExp} onChange={updateSection(setWorkExp)} customFields={customWork} onCustomFieldsChange={setCustomWork} {...stepProps} hideLayoutToggle={true} />
+          <Education data={education} onChange={updateSection(setEducation)} customFields={customEducation} onCustomFieldsChange={setCustomEducation} {...stepProps} hideLayoutToggle={true} />
+          <Skills data={skills} onChange={updateSection(setSkills)} customFields={customSkills} onCustomFieldsChange={setCustomSkills} {...stepProps} hideLayoutToggle={true} />
+          <CertsAndProjects data={certsProjects} onChange={updateSection(setCertsProjects)} customFields={customCerts} onCustomFieldsChange={setCustomCerts} {...stepProps} hideLayoutToggle={true} />
+          <JobPreferences data={preferences} onChange={updateSection(setPreferences)} customFields={customPrefs} onCustomFieldsChange={setCustomPrefs} {...stepProps} hideLayoutToggle={true} />
+          
+          <Container header={<Header variant="h2">Review & Save</Header>}>
+            <SpaceBetween size="m">
+              <Alert type="success">Review your profile configuration above. Your selections and custom fields define the structure of what the AI learns about you.</Alert>
+              <Box float="right">
+                <Button variant="primary" onClick={handleSubmit} loading={status === 'saving'}>Save Profile</Button>
+              </Box>
+            </SpaceBetween>
+          </Container>
+        </SpaceBetween>
+      )}
     </>
   );
 }
