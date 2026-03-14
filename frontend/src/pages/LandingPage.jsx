@@ -6,10 +6,28 @@ import './LandingPage.css';
 
 function UseCaseModal({ onClose }) {
   const navigate = useNavigate();
-  const [template, setTemplate] = useState('general');
-  const [activeFields, setActiveFields] = useState(TEMPLATES.general.fields);
-  const [customKeys, setCustomKeys] = useState([]);
+  const [template, setTemplate] = useState(() => localStorage.getItem('autofill_selected_template') || 'general');
+  const [activeFields, setActiveFields] = useState(() => {
+    const saved = localStorage.getItem('autofill_active_fields');
+    return saved ? JSON.parse(saved) : TEMPLATES.general.fields;
+  });
+  const [customKeys, setCustomKeys] = useState(() => {
+    const saved = localStorage.getItem('autofill_custom_keys');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [newCustom, setNewCustom] = useState('');
+
+  useEffect(() => {
+    localStorage.setItem('autofill_selected_template', template);
+  }, [template]);
+
+  useEffect(() => {
+    localStorage.setItem('autofill_active_fields', JSON.stringify(activeFields));
+  }, [activeFields]);
+
+  useEffect(() => {
+    localStorage.setItem('autofill_custom_keys', JSON.stringify(customKeys));
+  }, [customKeys]);
 
   // Update active fields when template changes
   const handleTemplateChange = (e) => {

@@ -57,7 +57,13 @@ function DismissibleField({ id, activeFields, children }) {
 }
 
 function StepWrapper({ title, sections, activeFields, onAdd, onRemove, children }) {
-  const [editMode, setEditMode] = useState(false);
+  const [editMode, setEditMode] = useState(() => {
+    return localStorage.getItem(`profile_edit_mode_${sections.join('_')}`) === 'true';
+  });
+  
+  useEffect(() => {
+    localStorage.setItem(`profile_edit_mode_${sections.join('_')}`, editMode);
+  }, [editMode, sections]);
   
   // Collect all inactive fields for the allowed sections
   const inactive = STANDARD_FIELDS.filter(f => sections.includes(f.section) && !activeFields.includes(f.id));
@@ -425,17 +431,25 @@ function JobPreferences({ data, onChange, activeFields, onAdd, customFields, onC
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function ProfileSetupPage() {
-  const [activeStep, setActiveStep] = useState(0);
+  // Utility for persistent state
+  function usePersistedState(key, defaultValue) {
+    const [state, setState] = useState(() => {
+      try {
+        const saved = localStorage.getItem(key);
+        return saved ? JSON.parse(saved) : defaultValue;
+      } catch { return defaultValue; }
+    });
+    useEffect(() => {
+      localStorage.setItem(key, JSON.stringify(state));
+    }, [key, state]);
+    return [state, setState];
+  }
+
+  const [activeStep, setActiveStep] = usePersistedState('profile_active_step', 0);
   const [status, setStatus] = useState(null);
 
   // Field configurations
-  const [activeFields, setActiveFields] = useState(() => {
-    try {
-      const saved = localStorage.getItem('autofill_active_fields');
-      // "by default all will be enabled"
-      return saved ? JSON.parse(saved) : STANDARD_FIELDS.map(f => f.id);
-    } catch { return STANDARD_FIELDS.map(f => f.id); }
-  });
+  const [activeFields, setActiveFields] = usePersistedState('autofill_active_fields', STANDARD_FIELDS.map(f => f.id));
 
   const removeField = (id) => setActiveFields(prev => prev.filter(f => f !== id));
   const addField = (id) => setActiveFields(prev => [...prev, id]);
@@ -443,12 +457,12 @@ export default function ProfileSetupPage() {
   const updateSection = (setter) => (key, val) => setter(prev => ({ ...prev, [key]: val }));
 
   // Data states
-  const [personal, setPersonal] = useState({});
-  const [workExp, setWorkExp] = useState({ experiences: [{ id: 1 }] });
-  const [education, setEducation] = useState({ education: [{ id: 1 }] });
-  const [skills, setSkills] = useState({});
-  const [certsProjects, setCertsProjects] = useState({ certs: [], projs: [] });
-  const [preferences, setPreferences] = useState({ pause: true });
+  const [personal, setPersonal] = usePersistedState('profile_personal', {});
+  const [workExp, setWorkExp] = usePersistedState('profile_work', { experiences: [{ id: 1 }] });
+  const [education, setEducation] = usePersistedState('profile_edu', { education: [{ id: 1 }] });
+  const [skills, setSkills] = usePersistedState('profile_skills', {});
+  const [certsProjects, setCertsProjects] = usePersistedState('profile_certs_projs', { certs: [], projs: [] });
+  const [preferences, setPreferences] = usePersistedState('profile_prefs', { pause: true });
 
   // Custom Fields initialized from LocalStorage (What are you automating? setup)
   useEffect(() => {
@@ -465,12 +479,12 @@ export default function ProfileSetupPage() {
     } catch(e) {}
   }, []);
 
-  const [customPersonal, setCustomPersonal] = useState([]);
-  const [customWork, setCustomWork] = useState([]);
-  const [customEducation, setCustomEducation] = useState([]);
-  const [customSkills, setCustomSkills] = useState([]);
-  const [customCerts, setCustomCerts] = useState([]);
-  const [customPrefs, setCustomPrefs] = useState([]);
+  const [customPersonal, setCustomPersonal] = usePersistedState('profile_custom_personal', []);
+  const [customWork, setCustomWork] = usePersistedState('profile_custom_work', []);
+  const [customEducation, setCustomEducation] = usePersistedState('profile_custom_edu', []);
+  const [customSkills, setCustomSkills] = usePersistedState('profile_custom_skills', []);
+  const [customCerts, setCustomCerts] = usePersistedState('profile_custom_certs', []);
+  const [customPrefs, setCustomPrefs] = usePersistedState('profile_custom_prefs', []);
 
   const profileData = {
     personal, workExp, education, skills, certsProjects, preferences,
