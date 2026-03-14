@@ -328,21 +328,116 @@ function Education({ data, onChange, activeFields, onAdd, onRemove, customFields
 
 // ─── Step 4: Skills ───────────────────────────────────────────────────────────
 function Skills({ data, onChange, activeFields, onAdd, customFields, onCustomFieldsChange, onRemove, layoutMode, onLayoutChange, hideLayoutToggle }) {
+  const [skillInput, setSkillInput] = useState('');
+  
+  const skillsList = data.skillsList || [];
+  const noFormat = data.noFormat || false;
+
+  const addSkill = (skill) => {
+    const trimmed = skill.trim();
+    if (trimmed && !skillsList.includes(trimmed)) {
+      onChange('skillsList', [...skillsList, trimmed]);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addSkill(skillInput);
+      setSkillInput('');
+    }
+  };
+
+  const handleInputChange = (val) => {
+    if (val.includes(',')) {
+      const parts = val.split(',');
+      const last = parts.pop();
+      parts.forEach(p => addSkill(p));
+      setSkillInput(last);
+    } else {
+      setSkillInput(val);
+    }
+  };
+
+  const removeSkill = (idx) => {
+    onChange('skillsList', skillsList.filter((_, i) => i !== idx));
+  };
+
   return (
     <StepWrapper sections={['skills']} activeFields={activeFields} onAdd={onAdd} onRemove={onRemove} layoutMode={layoutMode} onLayoutChange={onLayoutChange} hideLayoutToggle={hideLayoutToggle}>
       <SpaceBetween size="l">
-        <Container header={<Header variant="h2">Technical Skills & Profile</Header>}>
-        <SpaceBetween size="m">
-          <DismissibleField id="skills_langs" activeFields={activeFields}><FormField label="Primary Languages"><Multiselect placeholder="Select languages..." selectedOptions={data.langs||[]} onChange={({detail})=>onChange('langs',detail.selectedOptions)} options={[{label:'Python',value:'py'},{label:'JavaScript',value:'js'}]}/></FormField></DismissibleField>
-          <DismissibleField id="skills_frameworks" activeFields={activeFields}><FormField label="Frameworks"><Multiselect placeholder="Select frameworks..." selectedOptions={data.frameworks||[]} onChange={({detail})=>onChange('frameworks',detail.selectedOptions)} options={[{label:'React',value:'react'},{label:'Node.js',value:'node'}]}/></FormField></DismissibleField>
-          <DismissibleField id="skills_db" activeFields={activeFields}><FormField label="Databases"><Multiselect placeholder="Select databases..." selectedOptions={data.dbs||[]} onChange={({detail})=>onChange('dbs',detail.selectedOptions)} options={[{label:'Postgres',value:'pg'}]}/></FormField></DismissibleField>
-          <DismissibleField id="skills_cloud" activeFields={activeFields}><FormField label="Cloud & DevOps"><Multiselect placeholder="Select tools..." selectedOptions={data.cloud||[]} onChange={({detail})=>onChange('cloud',detail.selectedOptions)} options={[{label:'AWS',value:'aws'}]}/></FormField></DismissibleField>
-          <DismissibleField id="skills_aiml" activeFields={activeFields}><FormField label="AI/ML Tools"><Multiselect placeholder="Select AI defaults..." selectedOptions={data.aiml||[]} onChange={({detail})=>onChange('aiml',detail.selectedOptions)} options={[{label:'PyTorch',value:'pt'}]}/></FormField></DismissibleField>
-          <DismissibleField id="skills_other" activeFields={activeFields}><FormField label="Other Skills"><Input placeholder="HTML, CSS, Git..." value={data.other||''} onChange={({detail})=>onChange('other',detail.value)}/></FormField></DismissibleField>
-          <DismissibleField id="skills_yoe" activeFields={activeFields}><FormField label={`Total Experience: ${data.yoe||0} yrs`}><Slider value={data.yoe||0} onChange={({detail})=>onChange('yoe',detail.value)} max={25}/></FormField></DismissibleField>
-        </SpaceBetween>
-      </Container>
-        <CustomFieldBuilder fields={customFields} onChange={onCustomFieldsChange} sectionTitle="Additional Skills" />
+        <Container 
+          header={
+            <Header 
+              variant="h2" 
+              description="Add your technical expertise, tools, and professional capabilities."
+              actions={
+                <Toggle
+                  checked={noFormat}
+                  onChange={({ detail }) => onChange('noFormat', detail.checked)}
+                >
+                  Raw Text Mode
+                </Toggle>
+              }
+            >
+              Skills & Technologies
+            </Header>
+          }
+        >
+          <SpaceBetween size="m">
+            {noFormat ? (
+              <FormField label="All Skills (Free-form)" description="Enter your skills exactly as you want them to be read by the AI (e.g. for specific resumes or LLM context).">
+                <Textarea
+                  placeholder="Python, React, AWS, Distributed Systems, Team Leadership..."
+                  value={data.skillsRaw || ''}
+                  onChange={({ detail }) => onChange('skillsRaw', detail.value)}
+                  rows={6}
+                />
+              </FormField>
+            ) : (
+              <SpaceBetween size="m">
+                <FormField 
+                  label="Add Skills" 
+                  description="Type a skill and press Enter or use commas to add multiple chips."
+                >
+                  <Input
+                    placeholder="e.g. React, Node.js, AI Models..."
+                    value={skillInput}
+                    onChange={({ detail }) => handleInputChange(detail.value)}
+                    onKeyDown={handleKeyDown}
+                  />
+                </FormField>
+
+                {skillsList.length > 0 && (
+                  <FormField label="Active Skills">
+                    <TokenGroup
+                      items={skillsList.map(s => ({ label: s }))}
+                      onDismiss={({ detail }) => removeSkill(detail.itemIndex)}
+                      alignment="horizontal"
+                    />
+                  </FormField>
+                )}
+                
+                {skillsList.length === 0 && (
+                  <Box color="text-body-secondary" textAlign="center" margin={{ vertical: 'l' }}>
+                    No skills added yet. Start typing above to build your profile.
+                  </Box>
+                )}
+              </SpaceBetween>
+            )}
+
+            <DismissibleField id="skills_yoe" activeFields={activeFields}>
+              <FormField label={`Total Experience: ${data.yoe || 0} years`}>
+                <Slider 
+                  value={data.yoe || 0} 
+                  onChange={({ detail }) => onChange('yoe', detail.value)} 
+                  max={25} 
+                />
+              </FormField>
+            </DismissibleField>
+          </SpaceBetween>
+        </Container>
+        <CustomFieldBuilder fields={customFields} onChange={onCustomFieldsChange} sectionTitle="Additional Skills Content" />
       </SpaceBetween>
     </StepWrapper>
   );
