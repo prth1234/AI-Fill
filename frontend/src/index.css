@@ -55,16 +55,17 @@ body {
 }
 
 #root {
-  width: 1126px;
+  width: 100%;
   max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
+  margin: 0;
+  text-align: left;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  overflow-x: hidden;
 }
+
 
 h1,
 h2 {
@@ -73,24 +74,23 @@ h2 {
   color: var(--text-h);
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
+/* Force Cloudscape headers to be much bigger and fix coloring bugs */
+h1, [class*="awsui_header-variant-h1_"] {
+  font-size: 56px !important;
+  letter-spacing: -1.68px !important;
+  line-height: 1.1 !important;
+  color: var(--color-text-heading-default, var(--text-h)) !important;
+  transition: color 0.2s ease;
 }
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
+
+h2, [class*="awsui_header-variant-h2_"] {
+  font-size: 28px !important;
+  letter-spacing: -0.5px !important;
+  line-height: 1.2 !important;
+  color: var(--color-text-heading-default, var(--text-h)) !important;
+  transition: color 0.2s ease;
 }
+
 p {
   margin: 0;
 }
@@ -110,26 +110,208 @@ code {
   background: var(--code-bg);
 }
 
-/* ─── Custom Top Nav Branding ─── */
+/* ─── Liquid Glass Custom Header ─── */
+
 #top-nav {
-  background-color: #000000 !important;
-  border-bottom: 1px solid #1a1a1a;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 52px;
+  box-sizing: border-box;
 }
 
-#top-nav header,
-#top-nav [class*="awsui_top-navigation"],
-#top-nav [class*="awsui_identity"],
-#top-nav [class*="awsui_utilities"],
-#top-nav [class*="awsui_utility-wrapper"] {
-  background-color: #000000 !important;
+/* ── Light mode glass — bright frosted white ── */
+.glass-light {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(32px) saturate(200%) brightness(1.05);
+  -webkit-backdrop-filter: blur(32px) saturate(200%) brightness(1.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 4px 24px rgba(0, 0, 0, 0.06);
 }
 
-/* Ensure text and icons remains visible on pure black */
-#top-nav [class*="awsui_title"],
-#top-nav [class*="awsui_text"],
-#top-nav [class*="awsui_trigger-text"],
-#top-nav [class*="awsui_icon"] {
-  color: #ffffff !important;
+/* ── Dark mode: pure black translucent glass ── */
+.glass-dark {
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(32px) saturate(160%);
+  -webkit-backdrop-filter: blur(32px) saturate(160%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 4px 32px rgba(0, 0, 0, 0.85);
+}
+
+/* ── Brand / Logo button ── */
+.glass-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 10px;
+  transition: background 0.18s ease;
+  text-decoration: none;
+}
+
+.glass-light .glass-nav-brand:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.glass-dark .glass-nav-brand:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.glass-nav-logo {
+  height: 28px;
+  max-height: 28px;
+  width: auto;
+  max-width: 40px;
+  display: block;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.glass-nav-title {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  transition: color 0.18s ease;
+}
+
+.glass-light .glass-nav-title {
+  color: #0d0d1a;
+}
+.glass-dark .glass-nav-title {
+  color: #f0f0f4;
+}
+
+/* ── Right utilities row ── */
+.glass-nav-utils {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Utility buttons ── */
+.glass-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+  line-height: 1;
+}
+
+.glass-light .glass-nav-btn {
+  color: #1a1a2e;
+}
+.glass-dark .glass-nav-btn {
+  color: #e8e8f0;
+}
+
+.glass-light .glass-nav-btn:hover {
+  background: rgba(0, 0, 0, 0.07);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+.glass-dark .glass-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.glass-nav-btn:active {
+  transform: scale(0.97);
+}
+
+.glass-nav-btn svg {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+/* ── User dropdown wrapper ── */
+.glass-nav-user-wrap {
+  position: relative;
+}
+
+/* ── Dropdown panel ── */
+.glass-nav-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 160px;
+  border-radius: 12px;
+  padding: 6px;
+  animation: glass-dropdown-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 100;
+}
+
+.glass-light .glass-nav-dropdown {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 1px 0 rgba(255,255,255,0.9) inset;
+}
+
+.glass-dark .glass-nav-dropdown {
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.85), 0 1px 0 rgba(255,255,255,0.05) inset;
+}
+
+@keyframes glass-dropdown-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.glass-nav-dropdown-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px 14px;
+  border-radius: 8px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.glass-light .glass-nav-dropdown-item {
+  color: #1a1a2e;
+}
+.glass-dark .glass-nav-dropdown-item {
+  color: #e8e8f0;
+}
+
+.glass-light .glass-nav-dropdown-item:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.glass-dark .glass-nav-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 /* Force dark mode to be pure black instead of deep blue/gray */
