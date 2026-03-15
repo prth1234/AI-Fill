@@ -30,24 +30,26 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+[data-awsui-color-mode="dark"], .awsui-dark-mode, body.awsui-dark-mode {
+  --text: #9ca3af;
+  --text-h: #ffffff; /* pure white for dark mode headings */
+  --bg: #16171d;
+  --border: #2e303a;
+  --code-bg: #1f2028;
+  --accent: #c084fc;
+  --accent-bg: rgba(192, 132, 252, 0.15);
+  --accent-border: rgba(192, 132, 252, 0.5);
+  --social-bg: rgba(47, 48, 58, 0.5);
+  --shadow:
+    rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+  
+  /* Force Cloudscape headings to follow the pure white text color */
+  --color-text-heading-default: #ffffff !important;
+}
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
+[data-awsui-color-mode="dark"] #social .button-icon,
+.awsui-dark-mode #social .button-icon {
+  filter: invert(1) brightness(2);
 }
 
 body {
@@ -75,7 +77,9 @@ h2 {
 }
 
 /* Force Cloudscape headers to be much bigger and fix coloring bugs */
-h1, [class*="awsui_header-variant-h1_"] {
+h1, [class*="awsui_header-variant-h1_"],
+[class*="awsui_header_"] h1, [class*="awsui_header_"] h2,
+[class*="awsui_heading-text"] {
   font-size: 56px !important;
   letter-spacing: -1.68px !important;
   line-height: 1.1 !important;
@@ -83,12 +87,21 @@ h1, [class*="awsui_header-variant-h1_"] {
   transition: color 0.2s ease;
 }
 
-h2, [class*="awsui_header-variant-h2_"] {
+/* Force Cloudscape headers to be much bigger and fix coloring bugs */
+h2, [class*="awsui_header-variant-h2_"],
+[class*="awsui_header_"] h3 {
   font-size: 28px !important;
   letter-spacing: -0.5px !important;
   line-height: 1.2 !important;
   color: var(--color-text-heading-default, var(--text-h)) !important;
   transition: color 0.2s ease;
+}
+
+/* Override inner components of headers just in case */
+[class*="awsui_heading-text"] {
+  color: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
 }
 
 p {

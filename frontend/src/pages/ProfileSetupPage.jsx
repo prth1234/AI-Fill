@@ -220,7 +220,7 @@ function PersonalInfo({ data, onChange, activeFields, onAdd, onRemove, customFie
   return (
     <StepWrapper sections={['personal']} activeFields={activeFields} onAdd={onAdd} onRemove={onRemove} layoutMode={layoutMode} onLayoutChange={onLayoutChange} hideLayoutToggle={hideLayoutToggle}>
       <SpaceBetween size="l">
-        <Container header={<Header variant="h2">Resume Auto-Fill</Header>}>
+        <Container header={<Header variant="h3">Resume Auto-Fill</Header>}>
           <SpaceBetween size="m">
             <Alert type="info">Upload your resume to automatically extract and populate these fields using AI.</Alert>
             <DismissibleField id="resume_upload" activeFields={activeFields} onAdd={onAdd}>
@@ -262,7 +262,7 @@ function PersonalInfo({ data, onChange, activeFields, onAdd, onRemove, customFie
           </SpaceBetween>
         </Container>
 
-      <Container header={<Header variant="h2">Basic Details</Header>}>
+      <Container header={<Header variant="h3">Basic Details</Header>}>
         <SpaceBetween size="m">
           <ColumnLayout columns={2}>
             <DismissibleField id="firstName" activeFields={activeFields} onAdd={onAdd}><FormField label="First Name"><Input {...f('firstName')} placeholder="e.g. John" /></FormField></DismissibleField>
@@ -300,7 +300,7 @@ function PersonalInfo({ data, onChange, activeFields, onAdd, onRemove, customFie
         </SpaceBetween>
       </Container>
 
-      <Container header={<Header variant="h2">Location & Eligibility</Header>}>
+      <Container header={<Header variant="h3">Location & Eligibility</Header>}>
         <SpaceBetween size="m">
           <ColumnLayout columns={3}>
             <DismissibleField id="city" activeFields={activeFields} onAdd={onAdd}><FormField label="City"><Input {...f('city')} placeholder="San Francisco" /></FormField></DismissibleField>
@@ -336,7 +336,7 @@ function PersonalInfo({ data, onChange, activeFields, onAdd, onRemove, customFie
         </SpaceBetween>
       </Container>
 
-      <Container header={<Header variant="h2">Professional Summary</Header>}>
+      <Container header={<Header variant="h3">Professional Summary</Header>}>
         <DismissibleField id="summary" activeFields={activeFields} onAdd={onAdd}>
           <FormField label="Elevator Pitch / Summary">
             <Textarea disabled={!activeFields.includes('summary')} placeholder="Brief overview of your background..." value={data.summary || ''} onChange={({ detail }) => onChange('summary', detail.value)} rows={5} />
@@ -576,11 +576,11 @@ function Skills({ data, onChange, activeFields, onAdd, customFields, onCustomFie
 
   return (
     <StepWrapper sections={['skills']} activeFields={activeFields} onAdd={onAdd} onRemove={onRemove} layoutMode={layoutMode} onLayoutChange={onLayoutChange} hideLayoutToggle={hideLayoutToggle}>
-      <SpaceBetween size="l">
+      <SpaceBetween>
         <Container 
           header={
             <Header 
-              variant="h2" 
+              variant="h3" 
               description="Add your technical expertise, tools, and professional capabilities."
               actions={
                 <Toggle
@@ -824,7 +824,7 @@ function CertsAndProjects({ data, onChange, activeFields, onAdd, onRemove, custo
   return (
     <StepWrapper sections={['certs', 'projects']} activeFields={activeFields} onAdd={onAdd} onRemove={onRemove} layoutMode={layoutMode} onLayoutChange={onLayoutChange} hideLayoutToggle={hideLayoutToggle}>
       <SpaceBetween size="l">
-        <Container header={<Header variant="h2">Certifications</Header>}>
+        <Container header={<Header variant="h3">Certifications</Header>}>
         <SpaceBetween size="m">
           {certs.map((c, idx) => (
             <ExpandableSection key={c.id} headerText={c.name||`Cert ${idx+1}`} headerActions={<Button variant="icon" iconName="remove" onClick={()=>remove('certs',certs,idx)}/>}>
@@ -843,7 +843,7 @@ function CertsAndProjects({ data, onChange, activeFields, onAdd, onRemove, custo
         </SpaceBetween>
       </Container>
 
-      <Container header={<Header variant="h2">Projects</Header>}>
+      <Container header={<Header variant="h3">Projects</Header>}>
         <SpaceBetween size="m">
           {projs.map((p, idx) => (
             <ExpandableSection key={p.id} headerText={p.name||`Project ${idx+1}`} headerActions={<Button variant="icon" iconName="remove" onClick={()=>remove('projs',projs,idx)}/>}>
@@ -877,7 +877,7 @@ function JobPreferences({ data, onChange, activeFields, onAdd, customFields, onC
   return (
     <StepWrapper sections={['preferences']} activeFields={activeFields} onAdd={onAdd} onRemove={onRemove} layoutMode={layoutMode} onLayoutChange={onLayoutChange} hideLayoutToggle={hideLayoutToggle}>
       <SpaceBetween size="l">
-        <Container header={<Header variant="h2">Target Profile Properties</Header>}>
+        <Container header={<Header variant="h3">Target Profile Properties</Header>}>
         <SpaceBetween size="m">
           <DismissibleField id="pref_roles" activeFields={activeFields} onAdd={onAdd}><FormField label="Desired Job Titles"><Input {...f('desiredRoles', 'pref_roles')} /></FormField></DismissibleField>
           <DismissibleField id="pref_industries" activeFields={activeFields} onAdd={onAdd}><FormField label="Target Industries"><Multiselect disabled={!activeFields.includes('pref_industries')} onChange={({detail})=>onChange('industries', detail.selectedOptions)} selectedOptions={data.industries||[]} options={[{label:'Tech',value:'tech'}]} /></FormField></DismissibleField>
@@ -1010,13 +1010,13 @@ export default function ProfileSetupPage() {
           onSubmit={handleSubmit}
           activeStepIndex={activeStep}
           steps={[
-            { title: 'Personal Information', content: <PersonalInfo data={personal} onChange={updateSection(setPersonal)} customFields={customPersonal} onCustomFieldsChange={setCustomPersonal} {...stepProps} />, isOptional: true },
-            { title: 'Work Experience', content: <WorkExperience data={workExp} onChange={updateSection(setWorkExp)} customFields={customWork} onCustomFieldsChange={setCustomWork} {...stepProps} />, isOptional: true },
-            { title: 'Education', content: <Education data={education} onChange={updateSection(setEducation)} customFields={customEducation} onCustomFieldsChange={setCustomEducation} {...stepProps} />, isOptional: true },
-            { title: 'Skills & Technologies', content: <Skills data={skills} onChange={updateSection(setSkills)} customFields={customSkills} onCustomFieldsChange={setCustomSkills} {...stepProps} />, isOptional: true },
-            { title: 'Certifications & Projects', content: <CertsAndProjects data={certsProjects} onChange={updateSection(setCertsProjects)} customFields={customCerts} onCustomFieldsChange={setCustomCerts} {...stepProps} />, isOptional: true },
-            { title: 'Job Preferences', content: <JobPreferences data={preferences} onChange={updateSection(setPreferences)} customFields={customPrefs} onCustomFieldsChange={setCustomPrefs} {...stepProps} />, isOptional: true },
-            { title: 'Review & Save', content: <Alert type="success">Review your profile configuration above. Your selections and custom fields define the structure of what the AI learns about you.</Alert>, isOptional: true },
+            { title: 'Personal Information', content: <PersonalInfo data={personal} onChange={updateSection(setPersonal)} customFields={customPersonal} onCustomFieldsChange={setCustomPersonal} {...stepProps} /> },
+            { title: 'Work Experience', content: <WorkExperience data={workExp} onChange={updateSection(setWorkExp)} customFields={customWork} onCustomFieldsChange={setCustomWork} {...stepProps} /> },
+            { title: 'Education', content: <Education data={education} onChange={updateSection(setEducation)} customFields={customEducation} onCustomFieldsChange={setCustomEducation} {...stepProps} /> },
+            { title: 'Skills & Technologies', content: <Skills data={skills} onChange={updateSection(setSkills)} customFields={customSkills} onCustomFieldsChange={setCustomSkills} {...stepProps} /> },
+            { title: 'Certifications & Projects', content: <CertsAndProjects data={certsProjects} onChange={updateSection(setCertsProjects)} customFields={customCerts} onCustomFieldsChange={setCustomCerts} {...stepProps} /> },
+            { title: 'Job Preferences', content: <JobPreferences data={preferences} onChange={updateSection(setPreferences)} customFields={customPrefs} onCustomFieldsChange={setCustomPrefs} {...stepProps} /> },
+            { title: 'Review & Save', content: <Alert type="success">Review your profile configuration above. Your selections and custom fields define the structure of what the AI learns about you.</Alert> },
           ]}
         />
       ) : (
