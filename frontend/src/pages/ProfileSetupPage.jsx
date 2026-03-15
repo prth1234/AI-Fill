@@ -26,6 +26,26 @@ import axios from 'axios';
 import CustomFieldBuilder from '../components/CustomFieldBuilder';
 import { STANDARD_FIELDS, TEMPLATES } from '../fieldSchema';
 
+const MONTH_OPTIONS = [
+  { label: 'Jan', value: '01' },
+  { label: 'Feb', value: '02' },
+  { label: 'Mar', value: '03' },
+  { label: 'Apr', value: '04' },
+  { label: 'May', value: '05' },
+  { label: 'Jun', value: '06' },
+  { label: 'Jul', value: '07' },
+  { label: 'Aug', value: '08' },
+  { label: 'Sep', value: '09' },
+  { label: 'Oct', value: '10' },
+  { label: 'Nov', value: '11' },
+  { label: 'Dec', value: '12' },
+];
+
+const YEAR_OPTIONS = Array.from({ length: 50 }, (_, i) => {
+  const year = new Date().getFullYear() - i;
+  return { label: String(year), value: String(year) };
+});
+
 const API = 'http://localhost:4000/api';
 
 // ─── Utility Components & Context ──────────────────────────────────────────────
@@ -273,8 +293,56 @@ function WorkExperience({ data, onChange, activeFields, onAdd, onRemove, customF
               <DismissibleField id="work_location" activeFields={activeFields}><FormField label="Location"><Input placeholder="City, State" value={exp.location} onChange={({ detail }) => updateExp(idx, 'location', detail.value)} /></FormField></DismissibleField>
             </ColumnLayout>
             <ColumnLayout columns={3}>
-              <DismissibleField id="work_start" activeFields={activeFields}><FormField label="Start Date"><DatePicker placeholder="YYYY/MM" value={exp.startDate} onChange={({ detail }) => updateExp(idx, 'startDate', detail.value)} /></FormField></DismissibleField>
-              <DismissibleField id="work_end" activeFields={activeFields}><FormField label="End Date"><DatePicker placeholder="YYYY/MM" value={exp.endDate} onChange={({ detail }) => updateExp(idx, 'endDate', detail.value)} disabled={exp.current} /></FormField></DismissibleField>
+              <DismissibleField id="work_start" activeFields={activeFields}>
+                <FormField label="Start Date">
+                  <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
+                    <Select
+                      selectedOption={exp.startDate ? { label: MONTH_OPTIONS.find(m => m.value === exp.startDate.split('-')[1])?.label || 'Month', value: exp.startDate.split('-')[1] } : null}
+                      onChange={({ detail }) => {
+                        const year = exp.startDate ? exp.startDate.split('-')[0] : String(new Date().getFullYear());
+                        updateExp(idx, 'startDate', `${year}-${detail.selectedOption.value}-01`);
+                      }}
+                      options={MONTH_OPTIONS}
+                      placeholder="Month"
+                    />
+                    <Select
+                      selectedOption={exp.startDate ? { label: exp.startDate.split('-')[0], value: exp.startDate.split('-')[0] } : null}
+                      onChange={({ detail }) => {
+                        const month = exp.startDate ? exp.startDate.split('-')[1] : '01';
+                        updateExp(idx, 'startDate', `${detail.selectedOption.value}-${month}-01`);
+                      }}
+                      options={YEAR_OPTIONS}
+                      placeholder="Year"
+                    />
+                  </Grid>
+                </FormField>
+              </DismissibleField>
+              <DismissibleField id="work_end" activeFields={activeFields}>
+                <FormField label="End Date">
+                  <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
+                    <Select
+                      disabled={exp.current}
+                      selectedOption={exp.endDate && !exp.current ? { label: MONTH_OPTIONS.find(m => m.value === exp.endDate.split('-')[1])?.label || 'Month', value: exp.endDate.split('-')[1] } : null}
+                      onChange={({ detail }) => {
+                        const year = exp.endDate ? exp.endDate.split('-')[0] : String(new Date().getFullYear());
+                        updateExp(idx, 'endDate', `${year}-${detail.selectedOption.value}-01`);
+                      }}
+                      options={MONTH_OPTIONS}
+                      placeholder="Month"
+                    />
+                    <Select
+                      disabled={exp.current}
+                      selectedOption={exp.endDate && !exp.current ? { label: exp.endDate.split('-')[0], value: exp.endDate.split('-')[0] } : null}
+                      onChange={({ detail }) => {
+                        const month = exp.endDate ? exp.endDate.split('-')[1] : '01';
+                        updateExp(idx, 'endDate', `${detail.selectedOption.value}-${month}-01`);
+                      }}
+                      options={YEAR_OPTIONS}
+                      placeholder="Year"
+                    />
+                  </Grid>
+                </FormField>
+              </DismissibleField>
               <DismissibleField id="work_current" activeFields={activeFields}><FormField label="Current?"><Toggle checked={exp.current} onChange={({ detail }) => updateExp(idx, 'current', detail.checked)}>Currently working here</Toggle></FormField></DismissibleField>
             </ColumnLayout>
             <DismissibleField id="work_desc" activeFields={activeFields}><FormField label="Role Description"><Textarea placeholder="Describe your responsibilities..." value={exp.description} onChange={({ detail }) => updateExp(idx, 'description', detail.value)} rows={3} /></FormField></DismissibleField>
@@ -311,8 +379,54 @@ function Education({ data, onChange, activeFields, onAdd, onRemove, customFields
               <DismissibleField id="edu_gpa" activeFields={activeFields}><FormField label="GPA"><Input placeholder="3.8 / 4.0" value={edu.gpa} onChange={({ detail }) => updateEdu(idx, 'gpa', detail.value)} /></FormField></DismissibleField>
             </ColumnLayout>
             <ColumnLayout columns={2}>
-              <DismissibleField id="edu_start" activeFields={activeFields}><FormField label="Start Date"><DatePicker placeholder="YYYY/MM" value={edu.startDate} onChange={({ detail }) => updateEdu(idx, 'startDate', detail.value)} /></FormField></DismissibleField>
-              <DismissibleField id="edu_end" activeFields={activeFields}><FormField label="Graduation Date"><DatePicker placeholder="YYYY/MM" value={edu.endDate} onChange={({ detail }) => updateEdu(idx, 'endDate', detail.value)} /></FormField></DismissibleField>
+              <DismissibleField id="edu_start" activeFields={activeFields}>
+                <FormField label="Start Date">
+                  <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
+                    <Select
+                      selectedOption={edu.startDate ? { label: MONTH_OPTIONS.find(m => m.value === edu.startDate.split('-')[1])?.label || 'Month', value: edu.startDate.split('-')[1] } : null}
+                      onChange={({ detail }) => {
+                        const year = edu.startDate ? edu.startDate.split('-')[0] : String(new Date().getFullYear());
+                        updateEdu(idx, 'startDate', `${year}-${detail.selectedOption.value}-01`);
+                      }}
+                      options={MONTH_OPTIONS}
+                      placeholder="Month"
+                    />
+                    <Select
+                      selectedOption={edu.startDate ? { label: edu.startDate.split('-')[0], value: edu.startDate.split('-')[0] } : null}
+                      onChange={({ detail }) => {
+                        const month = edu.startDate ? edu.startDate.split('-')[1] : '01';
+                        updateEdu(idx, 'startDate', `${detail.selectedOption.value}-${month}-01`);
+                      }}
+                      options={YEAR_OPTIONS}
+                      placeholder="Year"
+                    />
+                  </Grid>
+                </FormField>
+              </DismissibleField>
+              <DismissibleField id="edu_end" activeFields={activeFields}>
+                <FormField label="Graduation Date">
+                  <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
+                    <Select
+                      selectedOption={edu.endDate ? { label: MONTH_OPTIONS.find(m => m.value === edu.endDate.split('-')[1])?.label || 'Month', value: edu.endDate.split('-')[1] } : null}
+                      onChange={({ detail }) => {
+                        const year = edu.endDate ? edu.endDate.split('-')[0] : String(new Date().getFullYear());
+                        updateEdu(idx, 'endDate', `${year}-${detail.selectedOption.value}-01`);
+                      }}
+                      options={MONTH_OPTIONS}
+                      placeholder="Month"
+                    />
+                    <Select
+                      selectedOption={edu.endDate ? { label: edu.endDate.split('-')[0], value: edu.endDate.split('-')[0] } : null}
+                      onChange={({ detail }) => {
+                        const month = edu.endDate ? edu.endDate.split('-')[1] : '01';
+                        updateEdu(idx, 'endDate', `${detail.selectedOption.value}-${month}-01`);
+                      }}
+                      options={YEAR_OPTIONS}
+                      placeholder="Year"
+                    />
+                  </Grid>
+                </FormField>
+              </DismissibleField>
             </ColumnLayout>
             <DismissibleField id="edu_coursework" activeFields={activeFields}><FormField label="Relevant Coursework"><Input placeholder="Algorithms, Data Structures..." value={edu.coursework} onChange={({ detail }) => updateEdu(idx, 'coursework', detail.value)} /></FormField></DismissibleField>
             <DismissibleField id="edu_activities" activeFields={activeFields}><FormField label="Clubs / Honors"><Textarea placeholder="Dean's List, Robotics Club..." value={edu.activities} onChange={({ detail }) => updateEdu(idx, 'activities', detail.value)} rows={2} /></FormField></DismissibleField>
@@ -489,12 +603,111 @@ function Skills({ data, onChange, activeFields, onAdd, customFields, onCustomFie
             )}
 
             <DismissibleField id="skills_yoe" activeFields={activeFields}>
-              <FormField label={`Total Experience: ${data.yoe || 0} years`}>
-                <Slider 
-                  value={data.yoe || 0} 
-                  onChange={({ detail }) => onChange('yoe', detail.value)} 
-                  max={25} 
-                />
+              <FormField 
+                label="Total Work Experience"
+                description="Keep your experience synced by selecting a start date or adjusting years/months."
+              >
+                <SpaceBetween size="m">
+                  <Grid gridDefinition={[{ colspan: 4 }, { colspan: 1 }, { colspan: 7 }]}>
+                    <FormField label="Career Start Date">
+                      <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
+                        <Select
+                          placeholder="Month"
+                          selectedOption={data.careerStart && data.careerStart.includes('-') ? { label: MONTH_OPTIONS.find(m => m.value === data.careerStart.split('-')[1])?.label || 'Month', value: data.careerStart.split('-')[1] } : null}
+                          onChange={({ detail }) => {
+                            const month = detail.selectedOption.value;
+                            const year = (data.careerStart && data.careerStart.includes('-')) ? data.careerStart.split('-')[0] : String(new Date().getFullYear());
+                            const date = `${year}-${month}-01`;
+                            onChange('careerStart', date);
+                            
+                            const start = new Date(date);
+                            const now = new Date();
+                            let years = now.getFullYear() - start.getFullYear();
+                            let mons = now.getMonth() - start.getMonth();
+                            if (mons < 0) {
+                              years--;
+                              mons += 12;
+                            }
+                            onChange('yoe', years);
+                            onChange('moe', mons);
+                          }}
+                          options={MONTH_OPTIONS}
+                        />
+                        <Select
+                          placeholder="Year"
+                          selectedOption={data.careerStart && data.careerStart.includes('-') ? { label: data.careerStart.split('-')[0], value: data.careerStart.split('-')[0] } : null}
+                          onChange={({ detail }) => {
+                            const year = detail.selectedOption.value;
+                            const month = (data.careerStart && data.careerStart.includes('-')) ? data.careerStart.split('-')[1] : '01';
+                            const date = `${year}-${month}-01`;
+                            onChange('careerStart', date);
+                            
+                            const start = new Date(date);
+                            const now = new Date();
+                            let years = now.getFullYear() - start.getFullYear();
+                            let mons = now.getMonth() - start.getMonth();
+                            if (mons < 0) {
+                              years--;
+                              mons += 12;
+                            }
+                            onChange('yoe', years);
+                            onChange('moe', mons);
+                          }}
+                          options={YEAR_OPTIONS}
+                        />
+                      </Grid>
+                    </FormField>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', paddingTop: '24px' }}>
+                      <Box variant="span" color="text-label" fontWeight="bold">OR</Box>
+                    </div>
+                    
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+                      <div style={{ flex: 1 }}>
+                        <FormField label="Years">
+                          <Select
+                            selectedOption={{ label: `${data.yoe || 0} yrs`, value: String(data.yoe || 0) }}
+                            onChange={({ detail }) => {
+                              const newY = parseInt(detail.selectedOption.value);
+                              onChange('yoe', newY);
+                              
+                              // Sync back to date
+                              const now = new Date();
+                              const newDate = new Date(now.getFullYear() - newY, now.getMonth() - (data.moe || 0), 1);
+                              const formattedDate = `${newDate.getFullYear()}-${String(newDate.getMonth() + 1).padStart(2, '0')}-01`;
+                              onChange('careerStart', formattedDate);
+                            }}
+                            options={Array.from({ length: 31 }, (_, i) => ({ label: `${i} yrs`, value: String(i) }))}
+                          />
+                        </FormField>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <FormField label="Months">
+                          <Select
+                            selectedOption={{ label: `${data.moe || 0} mos`, value: String(data.moe || 0) }}
+                            onChange={({ detail }) => {
+                              const newM = parseInt(detail.selectedOption.value);
+                              onChange('moe', newM);
+                              
+                              // Sync back to date
+                              const now = new Date();
+                              const newDate = new Date(now.getFullYear() - (data.yoe || 0), now.getMonth() - newM, 1);
+                              const formattedDate = `${newDate.getFullYear()}-${String(newDate.getMonth() + 1).padStart(2, '0')}-01`;
+                              onChange('careerStart', formattedDate);
+                            }}
+                            options={Array.from({ length: 12 }, (_, i) => ({ label: `${i} mos`, value: String(i) }))}
+                          />
+                        </FormField>
+                      </div>
+                    </div>
+                  </Grid>
+
+                  {(data.yoe > 0 || data.moe > 0) && (
+                    <Box color="text-status-info" variant="small">
+                      Total tenure: <strong>{data.yoe || 0} years</strong> and <strong>{data.moe || 0} months</strong>
+                    </Box>
+                  )}
+                </SpaceBetween>
               </FormField>
             </DismissibleField>
           </SpaceBetween>
