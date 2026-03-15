@@ -426,55 +426,121 @@ code {
 }
 
 
-/* ─── Skill Chips ─── */
-.skill-chip {
-  padding: 6px 14px;
-  border-radius: 9999px;
-  font-size: 13px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 500;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  background: transparent !important;
-  border: 1px solid #0284c7 !important;
-  color: #0284c7 !important;
-  outline: none;
+/* ─── Unified Chip & Token Design ─── */
+/* This ensures custom chips and native library tokens look IDENTICAL */
+.skill-chip, 
+[class*="awsui_token_"]:not([class*="group"]):not([class*="list"]) {
+  height: 32px !important;     /* Standardized to match Skill Chip visually */
+  min-height: unset !important;
+  line-height: 1 !important;
+  padding: 0 14px !important;  /* Refined padding */
+  border-radius: 9999px !important;
+  font-size: 13px !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;         /* Matches Skills spacing */
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+  border: 1.5px solid #7dd3fc !important;
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+  outline: none !important;
+  box-shadow: none !important; /* Neutralize library shadow */
+  margin: 2px !important;      /* Standard spacing */
 }
 
 .skill-chip:active {
-  transform: scale(0.95);
+  transform: scale(0.96) !important;
 }
 
-[data-awsui-color-mode="dark"] .skill-chip, 
-.awsui-dark-mode .skill-chip,
-body.awsui-dark-mode .skill-chip {
+.skill-chip:hover,
+[class*="awsui_token_"]:not([class*="group"]):not([class*="list"]):hover {
+  background: #bae6fd !important;
   border-color: #38bdf8 !important;
-  color: #38bdf8 !important;
+  box-shadow: 0 4px 12px rgba(3, 105, 161, 0.1) !important;
 }
 
-.skill-chip:hover {
-  background: rgba(2, 132, 199, 0.05) !important;
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.1);
+/* Dark Mode Unified Look */
+[data-awsui-color-mode="dark"] .skill-chip,
+.awsui-dark-mode .skill-chip,
+[data-awsui-color-mode="dark"] [class*="awsui_token_"]:not([class*="group"]):not([class*="list"]) {
+  background: rgba(14, 165, 233, 0.15) !important;
+  border-color: rgba(14, 165, 233, 0.45) !important;
+  color: #7dd3fc !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
 }
 
 [data-awsui-color-mode="dark"] .skill-chip:hover,
-.awsui-dark-mode .skill-chip:hover {
-  background: rgba(56, 189, 248, 0.08) !important;
-  border-color: #7dd3fc !important;
+[data-awsui-color-mode="dark"] [class*="awsui_token_"]:not([class*="group"]):not([class*="list"]):hover {
+  background: rgba(14, 165, 233, 0.25) !important;
+  border-color: #38bdf8 !important;
   color: #ffffff !important;
-  box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
+  box-shadow: 0 0 20px rgba(14, 165, 233, 0.25) !important;
 }
 
+/* Internal Token Correction (Fixes the 'fucked up' look in multiselects) */
+[class*="awsui_token_"] [class*="awsui_token-item-content_"],
+[class*="awsui_token_"] [class*="awsui_label_"],
+[class*="awsui_token_"] [class*="awsui_token-content_"],
+[class*="awsui_token_"] span,
+[class*="awsui_token_"] div,
+[class*="awsui_token_"] label {
+  color: inherit !important;
+  font-weight: inherit !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  line-height: inherit !important;
+}
+
+/* Neutralize the dismiss button CIRCLE and background aggressively */
+[class*="awsui_token-dismiss-button_"],
+[class*="awsui_token-dismiss-button_"] *,
+[class*="awsui_token-dismiss-button_"]::before,
+[class*="awsui_token-dismiss-button_"]::after {
+  color: inherit !important;
+  opacity: 0.7 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  margin-left: 2px !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  transition: opacity 0.2s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Specific fix for Cloudscape's internal circle button background */
+[class*="awsui_token-dismiss-button_"] [class*="awsui_button_"] {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+[class*="awsui_token_"]:hover [class*="awsui_token-dismiss-button_"] {
+  opacity: 1 !important;
+}
+
+/* Shared Icon logic */
 .skill-chip svg {
-  opacity: 0.8;
-  transition: opacity 0.2s ease;
+  opacity: 0.7 !important;
+  transition: opacity 0.2s ease !important;
 }
 
 .skill-chip:hover svg {
-  opacity: 1;
+  opacity: 1 !important;
 }
+
+
 
 
 /* kbd styling */
@@ -502,24 +568,8 @@ kbd {
   color: #a1a1aa;
 }
 
-/* Cloudscape Token Overrides */
-[class*="awsui_token_"] {
-  background-color: transparent !important;
-  border: 1px solid #0284c7 !important;
-  color: #0284c7 !important;
-}
 
-[data-awsui-color-mode="dark"] [class*="awsui_token_"],
-.awsui-dark-mode [class*="awsui_token_"],
-body.awsui-dark-mode [class*="awsui_token_"] {
-  border-color: #38bdf8 !important;
-  color: #38bdf8 !important;
-}
 
-[class*="awsui_token-item-content_"],
-[class*="awsui_token-dismiss-button_"] {
-  color: inherit !important;
-}
 
 
 

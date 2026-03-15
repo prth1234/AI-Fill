@@ -857,6 +857,90 @@ function CertsAndProjects({ data, onChange, activeFields, onAdd, onRemove, custo
   );
 }
 
+// ─── ChipInput: custom multi-chip input using .skill-chip (matches Skills section exactly) ───
+function ChipInput({ value = [], onChange, options, placeholder = 'Type and press Enter...', disabled }) {
+  const [inputVal, setInputVal] = useState('');
+
+  // options is an array like [{label, value}] for suggestions — but we also allow freeform
+  const allOptionLabels = (options || []).map(o => o.label);
+
+  const addChip = (text) => {
+    const trimmed = text.trim();
+    if (trimmed && !value.some(v => v.label.toLowerCase() === trimmed.toLowerCase())) {
+      onChange([...value, { label: trimmed, value: trimmed.toLowerCase().replace(/\s+/g, '_') }]);
+    }
+  };
+
+  const removeChip = (idx) => {
+    onChange(value.filter((_, i) => i !== idx));
+  };
+
+  const handleKeyDown = (e) => {
+    const key = e.detail?.key || e.key;
+    if (key === 'Enter' && inputVal.trim()) {
+      addChip(inputVal);
+      setInputVal('');
+    }
+  };
+
+  const handleChange = (val) => {
+    if (val.includes(',')) {
+      const parts = val.split(',');
+      const last = parts.pop();
+      parts.forEach(p => addChip(p));
+      setInputVal(last);
+    } else {
+      setInputVal(val);
+    }
+  };
+
+  return (
+    <div>
+      <Input
+        disabled={disabled}
+        placeholder={placeholder}
+        value={inputVal}
+        onChange={({ detail }) => handleChange(detail.value)}
+        onKeyDown={handleKeyDown}
+      />
+      {value.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '10px' }}>
+          {value.map((chip, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => removeChip(i)}
+              className="skill-chip"
+              disabled={disabled}
+            >
+              {chip.label}{' '}
+              <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
+                <path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
+          ))}
+        </div>
+      )}
+      {options && options.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+          {options.filter(o => !value.some(v => v.value === o.value)).map(o => (
+            <button
+              key={o.value}
+              type="button"
+              onClick={() => addChip(o.label)}
+              className="skill-chip"
+              disabled={disabled}
+              style={{ opacity: 0.55 }}
+            >
+              + {o.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Step 6: Preferences ──────────────────────────────────────────────────────
 function JobPreferences({ data, onChange, activeFields, onAdd, customFields, onCustomFieldsChange, onRemove, layoutMode, onLayoutChange, hideLayoutToggle }) {
   const f = (k, id) => ({ 
@@ -871,7 +955,24 @@ function JobPreferences({ data, onChange, activeFields, onAdd, customFields, onC
         <Container header={<Header variant="h3">Target Profile Properties</Header>}>
         <SpaceBetween size="m">
           <DismissibleField id="pref_roles" activeFields={activeFields} onAdd={onAdd}><FormField label="Desired Job Titles"><Input {...f('desiredRoles', 'pref_roles')} /></FormField></DismissibleField>
-          <DismissibleField id="pref_industries" activeFields={activeFields} onAdd={onAdd}><FormField label="Target Industries"><Multiselect disabled={!activeFields.includes('pref_industries')} onChange={({detail})=>onChange('industries', detail.selectedOptions)} selectedOptions={data.industries||[]} options={[{label:'Tech',value:'tech'}]} /></FormField></DismissibleField>
+          <DismissibleField id="pref_industries" activeFields={activeFields} onAdd={onAdd}>
+            <FormField label="Target Industries" description="Type an industry and press Enter, or click a suggestion.">
+              <ChipInput
+                disabled={!activeFields.includes('pref_industries')}
+                value={data.industries || []}
+                onChange={(val) => onChange('industries', val)}
+                options={[
+                  {label:'Tech', value:'tech'},
+                  {label:'Finance', value:'finance'},
+                  {label:'Healthcare', value:'healthcare'},
+                  {label:'Education', value:'education'},
+                  {label:'Retail', value:'retail'},
+                  {label:'Government', value:'government'},
+                ]}
+                placeholder="e.g. Tech, Finance..."
+              />
+            </FormField>
+          </DismissibleField>
           <DismissibleField id="pref_workMode" activeFields={activeFields} onAdd={onAdd}><FormField label="Work Mode"><Select disabled={!activeFields.includes('pref_workMode')} onChange={({detail})=>onChange('workMode', detail.selectedOption)} selectedOption={data.workMode||null} options={[{label:'Remote',value:'remote'},{label:'Hybrid',value:'hybrid'}]} /></FormField></DismissibleField>
           
           <ColumnLayout columns={2}>
@@ -879,7 +980,23 @@ function JobPreferences({ data, onChange, activeFields, onAdd, customFields, onC
             <DismissibleField id="pref_salaryMax" activeFields={activeFields} onAdd={onAdd}><FormField label="Max Salary"><Input {...f('salaryMax', 'pref_salaryMax')} /></FormField></DismissibleField>
           </ColumnLayout>
           
-          <DismissibleField id="pref_empTypes" activeFields={activeFields} onAdd={onAdd}><FormField label="Employment Type Preference"><Multiselect disabled={!activeFields.includes('pref_empTypes')} onChange={({detail})=>onChange('empTypes', detail.selectedOptions)} selectedOptions={data.empTypes||[]} options={[{label:'Full-time',value:'ft'}]} /></FormField></DismissibleField>
+          <DismissibleField id="pref_empTypes" activeFields={activeFields} onAdd={onAdd}>
+            <FormField label="Employment Type Preference" description="Type or click to select employment types.">
+              <ChipInput
+                disabled={!activeFields.includes('pref_empTypes')}
+                value={data.empTypes || []}
+                onChange={(val) => onChange('empTypes', val)}
+                options={[
+                  {label:'Full-time', value:'ft'},
+                  {label:'Part-time', value:'pt'},
+                  {label:'Contract', value:'contract'},
+                  {label:'Freelance', value:'freelance'},
+                  {label:'Internship', value:'internship'},
+                ]}
+                placeholder="e.g. Full-time, Contract..."
+              />
+            </FormField>
+          </DismissibleField>
           <DismissibleField id="pref_notice" activeFields={activeFields} onAdd={onAdd}><FormField label="Notice Period"><Select disabled={!activeFields.includes('pref_notice')} onChange={({detail})=>onChange('notice', detail.selectedOption)} selectedOption={data.notice||null} options={[{label:'Immediate',value:'imm'}]} /></FormField></DismissibleField>
           <DismissibleField id="pref_cover" activeFields={activeFields} onAdd={onAdd}><FormField label="Cover Letter Style"><Select disabled={!activeFields.includes('pref_cover')} onChange={({detail})=>onChange('cover', detail.selectedOption)} selectedOption={data.cover||null} options={[{label:'Formal',value:'formal'}]} /></FormField></DismissibleField>
           <DismissibleField id="pref_notes" activeFields={activeFields} onAdd={onAdd}><FormField label="Custom AutoFill Notes"><Textarea disabled={!activeFields.includes('pref_notes')} value={data.notes||''} onChange={({detail})=>onChange('notes',detail.value)} rows={3} /></FormField></DismissibleField>
