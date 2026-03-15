@@ -342,8 +342,9 @@ function Skills({ data, onChange, activeFields, onAdd, customFields, onCustomFie
   };
 
   const handleKeyDown = (e) => {
-    if (useEnter && e.key === 'Enter') {
-      e.preventDefault();
+    // Cloudscape events put the native keyboard event info in detail
+    const key = e.detail?.key || e.key;
+    if (useEnter && key === 'Enter') {
       const current = skillInput.trim();
       if (current) {
         addSkill(current);
@@ -376,20 +377,12 @@ function Skills({ data, onChange, activeFields, onAdd, customFields, onCustomFie
               variant="h2" 
               description="Add your technical expertise, tools, and professional capabilities."
               actions={
-                <SpaceBetween direction="horizontal" size="l">
-                  <Toggle
-                    checked={useEnter}
-                    onChange={({ detail }) => onChange('useEnter', detail.checked)}
-                  >
-                    Enter to add
-                  </Toggle>
-                  <Toggle
-                    checked={isFormatted}
-                    onChange={({ detail }) => onChange('isFormatted', detail.checked)}
-                  >
-                    Formatted
-                  </Toggle>
-                </SpaceBetween>
+                <Toggle
+                  checked={isFormatted}
+                  onChange={({ detail }) => onChange('isFormatted', detail.checked)}
+                >
+                  Formatted
+                </Toggle>
               }
             >
               Skills & Technologies
@@ -420,38 +413,46 @@ function Skills({ data, onChange, activeFields, onAdd, customFields, onCustomFie
                       />
                     )}
                     
-                    {useEnter && (
-                      <div style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '4px', 
-                        marginTop: '6px', 
-                        color: '#94a3b8', 
-                        fontSize: '12px',
-                        opacity: 0.8
-                      }}>
-                        <span>Press</span>
-                        <kbd style={{ 
-                          background: '#f1f5f9', 
-                          border: '1px solid #e2e8f0', 
-                          borderRadius: '4px', 
-                          padding: '1px 4px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '2px',
-                          color: '#64748b',
-                          fontFamily: 'monospace',
-                          fontWeight: 600
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                      <Toggle
+                        checked={useEnter}
+                        onChange={({ detail }) => onChange('useEnter', detail.checked)}
+                      >
+                        Enter to add
+                      </Toggle>
+
+                      {useEnter && (
+                        <div style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '4px', 
+                          color: '#94a3b8', 
+                          fontSize: '12px',
+                          opacity: 0.8
                         }}>
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="9 10 4 15 9 20"></polyline>
-                            <path d="M20 4v7a4 4 0 0 1-4 4H4"></path>
-                          </svg>
-                          Enter
-                        </kbd>
-                        <span>to add skill</span>
-                      </div>
-                    )}
+                          <span>Press</span>
+                          <kbd style={{ 
+                            background: '#f1f5f9', 
+                            border: '1px solid #e2e8f0', 
+                            borderRadius: '4px', 
+                            padding: '1px 4px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '2px',
+                            color: '#64748b',
+                            fontFamily: 'monospace',
+                            fontWeight: 600
+                          }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="9 10 4 15 9 20"></polyline>
+                              <path d="M20 4v7a4 4 0 0 1-4 4H4"></path>
+                            </svg>
+                            Enter
+                          </kbd>
+                          <span>to add skill</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </FormField>
 
