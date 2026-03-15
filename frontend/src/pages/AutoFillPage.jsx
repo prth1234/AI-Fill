@@ -93,7 +93,7 @@ export default function AutoFillPage() {
   return (
     <ContentLayout header={<Header variant="h1" description="Enter a job application URL and let AI + Playwright do the work">Launch AI AutoFill</Header>}>
       <SpaceBetween size="l">
-        <Container header={<Header variant="h2">Job Application Details</Header>}>
+        <Container header={<Header variant="h3">Job Application Details</Header>}>
           <SpaceBetween size="m">
             <FormField label="Job Application URL" description="Paste the direct link to the application form" constraintText="Supports Workday, Greenhouse, Lever, iCIMS, and more">
               <Input
@@ -181,7 +181,7 @@ export default function AutoFillPage() {
           </Container>
         )}
 
-        <Container header={<Header variant="h2">Session Logs</Header>}>
+        <Container header={<Header variant="h3">Session Logs</Header>}>
           <Box variant="code" className="autofill-log">
             {logs.length === 0
               ? <Box color="text-status-inactive">Logs will appear here when a session is running…</Box>

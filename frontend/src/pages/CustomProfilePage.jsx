@@ -153,7 +153,7 @@ export default function CustomProfilePage() {
         {status === 'success' && <Alert type="success" dismissible onDismiss={() => setStatus(null)} header="Profile saved">Your custom profile is ready for the AutoFill engine.</Alert>}
         {status === 'error' && <Alert type="error" dismissible onDismiss={() => setStatus(null)} header="Save failed">Check that the backend is running on port 4000.</Alert>}
 
-        <Container header={<Header variant="h2">Profile name</Header>}>
+        <Container header={<Header variant="h3">Profile name</Header>}>
           <FormField label="Give this profile a name" constraintText="Helps you identify it later when you have multiple profiles">
             <Input value={profileName} onChange={({ detail }) => setProfileName(detail.value)} placeholder="e.g. Visa application, Freelance contract, Job application" />
           </FormField>
@@ -162,7 +162,7 @@ export default function CustomProfilePage() {
         <Container
           header={
             <Header
-              variant="h2"
+              variant="h3"
               counter={fields.length ? `(${fields.length})` : ''}
               description="Each field you add becomes a piece of context the AI can reference when filling a form"
               actions={<Button iconName="add-plus" onClick={addField}>Add field</Button>}

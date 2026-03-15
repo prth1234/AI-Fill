@@ -1028,7 +1028,7 @@ export default function ProfileSetupPage() {
           <CertsAndProjects data={certsProjects} onChange={updateSection(setCertsProjects)} customFields={customCerts} onCustomFieldsChange={setCustomCerts} {...stepProps} hideLayoutToggle={true} />
           <JobPreferences data={preferences} onChange={updateSection(setPreferences)} customFields={customPrefs} onCustomFieldsChange={setCustomPrefs} {...stepProps} hideLayoutToggle={true} />
           
-          <Container header={<Header variant="h2">Review & Save</Header>}>
+          <Container header={<Header variant="h3">Review & Save</Header>}>
             <SpaceBetween size="m">
               <Alert type="success">Review your profile configuration above. Your selections and custom fields define the structure of what the AI learns about you.</Alert>
               <Box float="right">

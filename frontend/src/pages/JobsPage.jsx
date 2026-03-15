@@ -69,7 +69,7 @@ export default function JobsPage() {
           { id: 'date', header: 'Date', cell: j => j.createdAt ? new Date(j.createdAt).toLocaleDateString() : '—' },
           { id: 'actions', header: '', cell: j => <Button variant="icon" iconName="external" href={j.url} target="_blank" /> },
         ]}
-        header={<Header counter={`(${filtered.length})`}>Applications</Header>}
+        header={<Header counter={`(${filtered.length})` } variant='h3'>Applications</Header>}
       />
     </ContentLayout>
   );
