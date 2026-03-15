@@ -151,8 +151,9 @@
 }
 
 .landing-btn-primary {
-  background: #fff;
-  color: #0a0a0a;
+  background: #000;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   font-size: 15px;
   font-weight: 600;
   padding: 13px 28px;
@@ -235,9 +236,9 @@
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: rgba(5, 5, 8, 0.8);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(5, 5, 8, 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -251,7 +252,7 @@
 }
 
 .landing-modal {
-  background: #0f0f14;
+  background: rgba(15, 15, 20, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 16px;
   padding: 32px;
@@ -413,9 +414,9 @@
 }
 
 .landing-chip {
-  background: transparent;
-  border: 1px solid var(--lp-border);
-  color: var(--lp-muted);
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  color: #0369a1;
   font-family: inherit;
   font-size: 12px;
   padding: 6px 12px;
@@ -423,23 +424,20 @@
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
+  font-weight: 500;
 }
 
 .landing-chip:hover {
-  border-color: rgba(255, 255, 255, 0.3);
-  color: #fff;
+  background: #e0f2fe;
+  border-color: #7dd3fc;
 }
 
-.landing-chip.active {
-  background: rgba(179, 136, 255, 0.15);
-  border-color: rgba(179, 136, 255, 0.4);
-  color: #e0c6ff;
-}
-
+.landing-chip.active,
 .landing-chip.custom {
-  background: rgba(43, 237, 187, 0.1);
-  border-color: rgba(43, 237, 187, 0.3);
-  color: #a7f3d0;
+  background: #e0f2fe;
+  border: 1px solid #0284c7;
+  color: #0284c7;
+  font-weight: 600;
 }
 
 .landing-modal-footer {

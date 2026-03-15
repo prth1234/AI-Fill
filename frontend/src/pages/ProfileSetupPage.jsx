@@ -331,7 +331,8 @@ function Skills({ data, onChange, activeFields, onAdd, customFields, onCustomFie
   const [skillInput, setSkillInput] = useState('');
   
   const skillsList = data.skillsList || [];
-  const noFormat = data.noFormat || false;
+  const isFormatted = data.isFormatted || false;
+  const useEnter = data.useEnter || false;
 
   const addSkill = (skill) => {
     const trimmed = skill.trim();
@@ -341,10 +342,13 @@ function Skills({ data, onChange, activeFields, onAdd, customFields, onCustomFie
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
+    if (useEnter && e.key === 'Enter') {
       e.preventDefault();
-      addSkill(skillInput);
-      setSkillInput('');
+      const current = skillInput.trim();
+      if (current) {
+        addSkill(current);
+        setSkillInput('');
+      }
     }
   };
 
@@ -372,12 +376,20 @@ function Skills({ data, onChange, activeFields, onAdd, customFields, onCustomFie
               variant="h2" 
               description="Add your technical expertise, tools, and professional capabilities."
               actions={
-                <Toggle
-                  checked={noFormat}
-                  onChange={({ detail }) => onChange('noFormat', detail.checked)}
-                >
-                  Raw Text Mode
-                </Toggle>
+                <SpaceBetween direction="horizontal" size="l">
+                  <Toggle
+                    checked={useEnter}
+                    onChange={({ detail }) => onChange('useEnter', detail.checked)}
+                  >
+                    Enter to add
+                  </Toggle>
+                  <Toggle
+                    checked={isFormatted}
+                    onChange={({ detail }) => onChange('isFormatted', detail.checked)}
+                  >
+                    Formatted
+                  </Toggle>
+                </SpaceBetween>
               }
             >
               Skills & Technologies
@@ -385,36 +397,76 @@ function Skills({ data, onChange, activeFields, onAdd, customFields, onCustomFie
           }
         >
           <SpaceBetween size="m">
-            {noFormat ? (
-              <FormField label="All Skills (Free-form)" description="Enter your skills exactly as you want them to be read by the AI (e.g. for specific resumes or LLM context).">
-                <Textarea
-                  placeholder="Python, React, AWS, Distributed Systems, Team Leadership..."
-                  value={data.skillsRaw || ''}
-                  onChange={({ detail }) => onChange('skillsRaw', detail.value)}
-                  rows={6}
-                />
-              </FormField>
-            ) : (
+            {isFormatted ? (
               <SpaceBetween size="m">
                 <FormField 
                   label="Add Skills" 
                   description="Type a skill and press Enter or use commas to add multiple chips."
                 >
-                  <Input
-                    placeholder="e.g. React, Node.js, AI Models..."
-                    value={skillInput}
-                    onChange={({ detail }) => handleInputChange(detail.value)}
-                    onKeyDown={handleKeyDown}
-                  />
+                  <div style={{ position: 'relative' }}>
+                    {useEnter ? (
+                      <Input
+                        placeholder="Type skill and press Enter..."
+                        value={skillInput}
+                        onChange={({ detail }) => handleInputChange(detail.value)}
+                        onKeyDown={handleKeyDown}
+                      />
+                    ) : (
+                      <Textarea
+                        placeholder="e.g. React, Node.js, AI Models..."
+                        value={skillInput}
+                        onChange={({ detail }) => handleInputChange(detail.value)}
+                        rows={2}
+                      />
+                    )}
+                    
+                    {useEnter && (
+                      <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '4px', 
+                        marginTop: '6px', 
+                        color: '#94a3b8', 
+                        fontSize: '12px',
+                        opacity: 0.8
+                      }}>
+                        <span>Press</span>
+                        <kbd style={{ 
+                          background: '#f1f5f9', 
+                          border: '1px solid #e2e8f0', 
+                          borderRadius: '4px', 
+                          padding: '1px 4px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '2px',
+                          color: '#64748b',
+                          fontFamily: 'monospace',
+                          fontWeight: 600
+                        }}>
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="9 10 4 15 9 20"></polyline>
+                            <path d="M20 4v7a4 4 0 0 1-4 4H4"></path>
+                          </svg>
+                          Enter
+                        </kbd>
+                        <span>to add skill</span>
+                      </div>
+                    )}
+                  </div>
                 </FormField>
 
                 {skillsList.length > 0 && (
                   <FormField label="Active Skills">
-                    <TokenGroup
-                      items={skillsList.map(s => ({ label: s }))}
-                      onDismiss={({ detail }) => removeSkill(detail.itemIndex)}
-                      alignment="horizontal"
-                    />
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
+                      {skillsList.map((s, i) => (
+                        <button
+                          key={i} type="button" onClick={() => removeSkill(i)}
+                          style={{ background: '#e0f2fe', border: '1px solid #7dd3fc', color: '#0284c7', padding: '6px 14px', borderRadius: '9999px', fontSize: '13px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}
+                        >
+                          {s} <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                        </button>
+                      ))}
+                    </div>
                   </FormField>
                 )}
                 
@@ -424,6 +476,15 @@ function Skills({ data, onChange, activeFields, onAdd, customFields, onCustomFie
                   </Box>
                 )}
               </SpaceBetween>
+            ) : (
+              <FormField label="All Skills (Free-form)" description="Enter your skills exactly as you want them to be read by the AI (e.g. for specific resumes or LLM context).">
+                <Textarea
+                  placeholder="Python, React, AWS, Distributed Systems, Team Leadership..."
+                  value={data.skillsRaw || ''}
+                  onChange={({ detail }) => onChange('skillsRaw', detail.value)}
+                  rows={6}
+                />
+              </FormField>
             )}
 
             <DismissibleField id="skills_yoe" activeFields={activeFields}>
