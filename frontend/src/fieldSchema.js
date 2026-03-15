@@ -1,5 +1,6 @@
 export const STANDARD_FIELDS = [
   // Personal Info
+  { id: 'resume_upload', label: 'Resume Upload', section: 'personal' },
   { id: 'firstName', label: 'First Name', section: 'personal' },
   { id: 'lastName', label: 'Last Name', section: 'personal' },
   { id: 'email', label: 'Email Address', section: 'personal' },

@@ -150,3 +150,55 @@ code {
   background-color: transparent !important;
 }
 
+/* ─── Stepper Consistency ─── */
+/* Standardize the active step indicator dot to be a blue circle with a white center dot */
+[class*="awsui_navigation-link-active"] > div:first-child,
+[class*="awsui-wizard-navigation-step-active"] [class*="awsui-wizard-navigation-step-indicator"] {
+  background: radial-gradient(circle, #ffffff 30%, #0073bb 32%) !important;
+  border: none !important;
+  position: relative !important;
+  border-radius: 50% !important;
+  width: 16px !important;
+  height: 16px !important;
+  display: block !important;
+  box-shadow: none !important;
+}
+
+/* Ensure no pseudo-elements from Cloudscape interfere with our gradient dot */
+[class*="awsui_navigation-link-active"] > div:first-child::after,
+[class*="awsui-wizard-navigation-step-active"] [class*="awsui-wizard-navigation-step-indicator"]::after,
+[class*="awsui_navigation-link-active"] > div:first-child::before,
+[class*="awsui-wizard-navigation-step-active"] [class*="awsui-wizard-navigation-step-indicator"]::before {
+  display: none !important;
+  content: none !important;
+}
+
+/* Light Mode Background Reset */
+[data-awsui-color-mode="light"], .awsui-light-mode {
+  --color-background-layout-main: #ffffff !important;
+  --color-background-container-content: #ffffff !important;
+}
+
+/* Ensure Wizard navigation also has a white background in light mode */
+[data-awsui-color-mode="light"] [class*="awsui_navigation-container"],
+.awsui-light-mode [class*="awsui_navigation-container"],
+[data-awsui-color-mode="light"] [class*="awsui_navigation_"],
+.awsui-light-mode [class*="awsui_navigation_"] {
+  background-color: #ffffff !important;
+}
+
+/* Force pure white on the entire app layout in light mode */
+[data-awsui-color-mode="light"] [class*="awsui_app-layout"],
+.awsui-light-mode [class*="awsui_app-layout"],
+[data-awsui-color-mode="light"] [class*="awsui_content"],
+.awsui-light-mode [class*="awsui_content"],
+[data-awsui-color-mode="light"] [class*="awsui_navigation"],
+.awsui-light-mode [class*="awsui_navigation"] {
+  background-color: #ffffff !important;
+}
+
+/* Ensure icons and text in the sidebar are appropriately colored for white background */
+[data-awsui-color-mode="light"] [class*="awsui_side-navigation"] {
+  background-color: #ffffff !important;
+}
+
