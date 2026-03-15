@@ -88,7 +88,7 @@ export default function DashboardPage() {
           columns={3}
         />
 
-        <Container header={<Header variant="h2">How It Works</Header>}>
+        <Container header={<Header variant="h3">How It Works</Header>}>
           <ColumnLayout columns={3} variant="text-grid">
             <div>
               <Box variant="h3">AI Context Layer</Box>

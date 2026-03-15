@@ -19,7 +19,8 @@
   letter-spacing: 0.18px;
   color-scheme: light dark;
   color: var(--text);
-  background: var(--bg);
+  background-color: var(--bg);
+  transition: background-color 0.3s ease;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -33,7 +34,7 @@
 [data-awsui-color-mode="dark"], .awsui-dark-mode, body.awsui-dark-mode {
   --text: #9ca3af;
   --text-h: #ffffff; /* pure white for dark mode headings */
-  --bg: #16171d;
+  --bg: #000000; /* Pure black as requested */
   --border: #2e303a;
   --code-bg: #1f2028;
   --accent: #c084fc;
@@ -54,6 +55,11 @@
 
 body {
   margin: 0;
+  background-color: var(--bg) !important;
+}
+
+html {
+  background-color: var(--bg) !important;
 }
 
 #root {
@@ -61,11 +67,12 @@ body {
   max-width: 100%;
   margin: 0;
   text-align: left;
-  min-height: 100svh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
   overflow-x: hidden;
+  background-color: var(--bg) !important;
   padding-top: 52px; /* Global offset for fixed header */
 }
 
@@ -417,4 +424,102 @@ code {
 [data-awsui-color-mode="light"] [class*="awsui_side-navigation"] {
   background-color: #ffffff !important;
 }
+
+
+/* ─── Skill Chips ─── */
+.skill-chip {
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  background: transparent !important;
+  border: 1px solid #0284c7 !important;
+  color: #0284c7 !important;
+  outline: none;
+}
+
+.skill-chip:active {
+  transform: scale(0.95);
+}
+
+[data-awsui-color-mode="dark"] .skill-chip, 
+.awsui-dark-mode .skill-chip,
+body.awsui-dark-mode .skill-chip {
+  border-color: #38bdf8 !important;
+  color: #38bdf8 !important;
+}
+
+.skill-chip:hover {
+  background: rgba(2, 132, 199, 0.05) !important;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.1);
+}
+
+[data-awsui-color-mode="dark"] .skill-chip:hover,
+.awsui-dark-mode .skill-chip:hover {
+  background: rgba(56, 189, 248, 0.08) !important;
+  border-color: #7dd3fc !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
+}
+
+.skill-chip svg {
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.skill-chip:hover svg {
+  opacity: 1;
+}
+
+
+/* kbd styling */
+kbd {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  border: 1px solid;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+[data-awsui-color-mode="light"] kbd {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+[data-awsui-color-mode="dark"] kbd {
+  background: #18181b;
+  border-color: #3f3f46;
+  color: #a1a1aa;
+}
+
+/* Cloudscape Token Overrides */
+[class*="awsui_token_"] {
+  background-color: transparent !important;
+  border: 1px solid #0284c7 !important;
+  color: #0284c7 !important;
+}
+
+[data-awsui-color-mode="dark"] [class*="awsui_token_"],
+.awsui-dark-mode [class*="awsui_token_"],
+body.awsui-dark-mode [class*="awsui_token_"] {
+  border-color: #38bdf8 !important;
+  color: #38bdf8 !important;
+}
+
+[class*="awsui_token-item-content_"],
+[class*="awsui_token-dismiss-button_"] {
+  color: inherit !important;
+}
+
+
 

@@ -591,7 +591,7 @@ function Skills({ data, onChange, activeFields, onAdd, customFields, onCustomFie
                 </Toggle>
               }
             >
-              Skills & Technologies
+              Skills 
             </Header>
           }
         >
@@ -637,24 +637,13 @@ function Skills({ data, onChange, activeFields, onAdd, customFields, onCustomFie
                           opacity: 0.8
                         }}>
                           <span>Press</span>
-                          <kbd style={{ 
-                            background: '#f1f5f9', 
-                            border: '1px solid #e2e8f0', 
-                            borderRadius: '4px', 
-                            padding: '1px 4px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '2px',
-                            color: '#64748b',
-                            fontFamily: 'monospace',
-                            fontWeight: 600
-                          }}>
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="9 10 4 15 9 20"></polyline>
-                              <path d="M20 4v7a4 4 0 0 1-4 4H4"></path>
-                            </svg>
-                            Enter
-                          </kbd>
+                        <kbd>
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="9 10 4 15 9 20"></polyline>
+                            <path d="M20 4v7a4 4 0 0 1-4 4H4"></path>
+                          </svg>
+                          Enter
+                        </kbd>
                           <span>to add skill</span>
                         </div>
                       )}
@@ -667,8 +656,10 @@ function Skills({ data, onChange, activeFields, onAdd, customFields, onCustomFie
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
                       {skillsList.map((s, i) => (
                         <button
-                          key={i} type="button" onClick={() => removeSkill(i)}
-                          style={{ background: '#e0f2fe', border: '1px solid #7dd3fc', color: '#0284c7', padding: '6px 14px', borderRadius: '9999px', fontSize: '13px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}
+                          key={i} 
+                          type="button" 
+                          onClick={() => removeSkill(i)}
+                          className="skill-chip"
                         >
                           {s} <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
                         </button>
@@ -1013,7 +1004,7 @@ export default function ProfileSetupPage() {
             { title: 'Personal Information', content: <PersonalInfo data={personal} onChange={updateSection(setPersonal)} customFields={customPersonal} onCustomFieldsChange={setCustomPersonal} {...stepProps} /> },
             { title: 'Work Experience', content: <WorkExperience data={workExp} onChange={updateSection(setWorkExp)} customFields={customWork} onCustomFieldsChange={setCustomWork} {...stepProps} /> },
             { title: 'Education', content: <Education data={education} onChange={updateSection(setEducation)} customFields={customEducation} onCustomFieldsChange={setCustomEducation} {...stepProps} /> },
-            { title: 'Skills & Technologies', content: <Skills data={skills} onChange={updateSection(setSkills)} customFields={customSkills} onCustomFieldsChange={setCustomSkills} {...stepProps} /> },
+            { title: 'Skills', content: <Skills data={skills} onChange={updateSection(setSkills)} customFields={customSkills} onCustomFieldsChange={setCustomSkills} {...stepProps} /> },
             { title: 'Certifications & Projects', content: <CertsAndProjects data={certsProjects} onChange={updateSection(setCertsProjects)} customFields={customCerts} onCustomFieldsChange={setCustomCerts} {...stepProps} /> },
             { title: 'Job Preferences', content: <JobPreferences data={preferences} onChange={updateSection(setPreferences)} customFields={customPrefs} onCustomFieldsChange={setCustomPrefs} {...stepProps} /> },
             { title: 'Review & Save', content: <Alert type="success">Review your profile configuration above. Your selections and custom fields define the structure of what the AI learns about you.</Alert> },
