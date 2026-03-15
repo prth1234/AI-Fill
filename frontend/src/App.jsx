@@ -1,10 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import AppLayout from '@cloudscape-design/components/app-layout';
 import TopNavigation from '@cloudscape-design/components/top-navigation';
 import SideNavigation from '@cloudscape-design/components/side-navigation';
 import BreadcrumbGroup from '@cloudscape-design/components/breadcrumb-group';
 import Icon from '@cloudscape-design/components/icon';
+import Spinner from '@cloudscape-design/components/spinner';
+import Box from '@cloudscape-design/components/box';
+import SpaceBetween from '@cloudscape-design/components/space-between';
+import logo from './assets/query-pilot-logo.png';
+import { applyMode, Mode } from '@cloudscape-design/global-styles';
+import { applyTheme } from '@cloudscape-design/components/theming';
 
 import LandingPage from './pages/LandingPage';
 import DashboardPage from './pages/DashboardPage';
@@ -37,10 +43,76 @@ const BREADCRUMB_MAP = {
   '/custom':              [{ text: 'AI AutoFill', href: '/' }, { text: 'Custom Profile',  href: '/custom' }],
 };
 
+function usePersistedState(key, defaultValue) {
+  const [state, setState] = useState(() => {
+    try {
+      const saved = localStorage.getItem(key);
+      return saved ? JSON.parse(saved) : defaultValue;
+    } catch { return defaultValue; }
+  });
+  useEffect(() => {
+    localStorage.setItem(key, JSON.stringify(state));
+  }, [key, state]);
+  return [state, setState];
+}
+
+
 function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
   const [navOpen, setNavOpen] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [theme, setTheme] = usePersistedState('app_theme', 'system');
+
+  useEffect(() => {
+    if (theme === 'dark') applyMode(Mode.Dark);
+    else if (theme === 'light') applyMode(Mode.Light);
+    else applyMode(Mode.System);
+  }, [theme]);
+
+  useEffect(() => {
+    // Apply Cloudscape Runtime Theme
+    applyTheme({
+      theme: {
+        tokens: {
+          // Clean up dark mode: pure black backgrounds or transparent
+          colorBackgroundLayoutMain: { light: '#f2f3f3', dark: '#000000' },
+          colorBackgroundContainerContent: { light: '#ffffff', dark: 'transparent' },
+          colorBackgroundContainerHeader: { light: '#ffffff', dark: 'transparent' },
+          colorBackgroundLayoutPanelContent: { light: '#ffffff', dark: '#000000' },
+          colorBackgroundInputDefault: { light: '#ffffff', dark: 'transparent' },
+          colorBackgroundButtonNormalDefault: { light: '#ffffff', dark: 'transparent' },
+          colorBackgroundDropdownItemDefault: { light: '#ffffff', dark: '#000000' },
+          colorBackgroundPopover: { light: '#ffffff', dark: '#000000' },
+          
+          // Remove dark blue from hover and active states
+          colorBackgroundButtonNormalHover: { light: '#f2f3f3', dark: '#111111' },
+          colorBackgroundButtonNormalActive: { light: '#e9ebed', dark: '#1a1a1a' },
+          colorBackgroundDropdownItemHover: { light: '#f2f3f3', dark: '#111111' },
+          colorBackgroundSegmentDefault: { light: '#ffffff', dark: 'transparent' },
+          colorBackgroundSegmentHover: { light: '#f2f3f3', dark: '#111111' },
+          
+          // Dropzone backgrounds
+          colorBackgroundDropzoneDefault: { light: '#ffffff', dark: 'transparent' },
+          colorBackgroundDropzoneHover: { light: '#f2f3f3', dark: '#111111' },
+          colorBackgroundDropzoneActive: { light: '#e9ebed', dark: '#1a1a1a' },
+        },
+        contexts: {
+          'top-navigation': {
+            tokens: {
+              // Force top-nav to be purely black in all modes
+              colorBackgroundContainerHeader: '#000000',
+              colorBackgroundLayoutMain: '#000000',
+              colorTextBodyDefault: '#ffffff',
+              colorTextHeadingDefault: '#ffffff',
+              colorTextInteractiveDefault: '#ffffff',
+              colorTextInteractiveHover: '#aab7b8',
+            }
+          }
+        }
+      }
+    });
+  }, []);
 
   const crumbs = BREADCRUMB_MAP[location.pathname] || BREADCRUMB_MAP['/dashboard'];
 
@@ -48,13 +120,25 @@ function AppShell() {
     <>
       <div id="top-nav" style={{ position: 'sticky', top: 0, zIndex: 1001 }}>
         <TopNavigation
-          identity={{ href: '/', title: 'AI AutoFill', logo: { alt: 'AI AutoFill' } }}
+          identity={{ href: '/', title: '', logo: { src: logo, alt: 'AI AutoFill' } }}
           utilities={[
             {
               type: 'button',
               text: 'Launch AutoFill',
               iconName: 'upload',
               onClick: () => navigate('/autofill'),
+            },
+            {
+              type: 'menu-dropdown',
+              iconName: 'settings',
+              ariaLabel: 'Settings',
+              title: 'Appearance',
+              items: [
+                { id: 'light', text: 'Light Mode', checked: theme === 'light' },
+                { id: 'dark', text: 'Dark Mode', checked: theme === 'dark' },
+                { id: 'system', text: 'System Default', checked: theme === 'system' }
+              ],
+              onItemClick: ({ detail }) => setTheme(detail.id)
             },
             { type: 'menu-dropdown', text: 'User', iconName: 'user-profile', items: [{ id: 'profile', text: 'Profile Setup' }] },
           ]}
@@ -79,14 +163,23 @@ function AppShell() {
           />
         }
         content={
-          <Routes>
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/profile/*" element={<ProfileSetupPage />} />
-            <Route path="/autofill" element={<AutoFillPage />} />
-            <Route path="/jobs" element={<JobsPage />} />
-            <Route path="/custom" element={<CustomProfilePage />} />
-            <Route path="*" element={<DashboardPage />} />
-          </Routes>
+          isLoading ? (
+            <Box padding="xxl" textAlign="center">
+              <SpaceBetween size="m">
+                <Spinner size="large" />
+                <Box variant="h3">Preparing your workspace...</Box>
+              </SpaceBetween>
+            </Box>
+          ) : (
+            <Routes>
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/profile/*" element={<ProfileSetupPage />} />
+              <Route path="/autofill" element={<AutoFillPage />} />
+              <Route path="/jobs" element={<JobsPage />} />
+              <Route path="/custom" element={<CustomProfilePage />} />
+              <Route path="*" element={<DashboardPage />} />
+            </Routes>
+          )
         }
         toolsHide
       />

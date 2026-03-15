@@ -109,3 +109,44 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+/* ─── Custom Top Nav Branding ─── */
+#top-nav {
+  background-color: #000000 !important;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+#top-nav header,
+#top-nav [class*="awsui_top-navigation"],
+#top-nav [class*="awsui_identity"],
+#top-nav [class*="awsui_utilities"],
+#top-nav [class*="awsui_utility-wrapper"] {
+  background-color: #000000 !important;
+}
+
+/* Ensure text and icons remains visible on pure black */
+#top-nav [class*="awsui_title"],
+#top-nav [class*="awsui_text"],
+#top-nav [class*="awsui_trigger-text"],
+#top-nav [class*="awsui_icon"] {
+  color: #ffffff !important;
+}
+
+/* Force dark mode to be pure black instead of deep blue/gray */
+[data-awsui-color-mode="dark"] {
+  --color-background-container-content: #000000 !important;
+  --color-background-layout-main: #000000 !important;
+  --color-background-layout-nav: #000000 !important;
+  --color-background-layout-tools: #000000 !important;
+}
+
+[data-awsui-color-mode="dark"] [class*="awsui_dropzone"] {
+  background-color: transparent !important;
+}
+
+/* Ensure step headers and other native layout headers are transparent too */
+[data-awsui-color-mode="dark"] [class*="awsui_header"],
+[data-awsui-color-mode="dark"] [class*="awsui_alert"] {
+  background-color: transparent !important;
+}
+

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import LightPillar from '../components/LightPillar';
 import { STANDARD_FIELDS, TEMPLATES } from '../fieldSchema';
 import './LandingPage.css';
+import logo from '../assets/query-pilot-logo.png';
 
 function UseCaseModal({ onClose }) {
   const navigate = useNavigate();
@@ -171,7 +172,9 @@ export default function LandingPage() {
 
       {/* Navigation */}
       <nav className="landing-nav">
-        <div className="landing-nav-logo">AutoFill</div>
+        <div className="landing-nav-logo">
+          <img src={logo} alt="Query Pilot" style={{ height: '32px' }} />
+        </div>
         <div className="landing-nav-links">
           <a href="https://github.com" target="_blank" rel="noreferrer" className="landing-nav-link">
             GitHub

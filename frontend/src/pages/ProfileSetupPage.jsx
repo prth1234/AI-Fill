@@ -22,6 +22,9 @@ import FileUpload from '@cloudscape-design/components/file-upload';
 import FileDropzone from '@cloudscape-design/components/file-dropzone';
 import TokenGroup from '@cloudscape-design/components/token-group';
 import Grid from '@cloudscape-design/components/grid';
+import ProgressBar from '@cloudscape-design/components/progress-bar';
+import StatusIndicator from '@cloudscape-design/components/status-indicator';
+import Spinner from '@cloudscape-design/components/spinner';
 import axios from 'axios';
 import CustomFieldBuilder from '../components/CustomFieldBuilder';
 import { STANDARD_FIELDS, TEMPLATES } from '../fieldSchema';
@@ -142,12 +145,26 @@ function StepWrapper({ title, sections, activeFields, onAdd, onRemove, children,
 // ─── Step 1: Personal Info ────────────────────────────────────────────────────
 function PersonalInfo({ data, onChange, activeFields, onAdd, onRemove, customFields, onCustomFieldsChange, layoutMode, onLayoutChange, hideLayoutToggle }) {
   const [files, setFiles] = useState([]);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState('idle'); // 'idle', 'uploading', 'success'
   const fileInputRef = React.useRef(null);
   const f = (k) => ({ value: data[k] || '', onChange: ({ detail }) => onChange(k, detail.value) });
 
-  const handleFileDropzoneChange = ({ detail }) => setFiles(detail.value);
+  const handleFileDropzoneChange = ({ detail }) => {
+    setFiles(detail.value);
+    if (detail.value.length > 0) {
+      setUploadStatus('success');
+      setUploadProgress(100);
+    }
+  };
   const handleNativeInputChange = (e) => {
-    if (e.target.files && e.target.files.length > 0) setFiles(Array.from(e.target.files));
+    if (e.target.files && e.target.files.length > 0) {
+      setFiles(Array.from(e.target.files));
+      setUploadStatus('success');
+      setUploadProgress(100);
+      // Reset input value so the same file can be uploaded again
+      e.target.value = '';
+    }
   };
 
   return (
@@ -169,10 +186,28 @@ function PersonalInfo({ data, onChange, activeFields, onAdd, onRemove, customFie
               
               {files.length > 0 && (
                 <Box margin={{ top: 's' }}>
-                  <TokenGroup
-                    items={files.map(f => ({ label: f.name }))}
-                    onDismiss={({ detail }) => setFiles(files.filter((_, i) => i !== detail.itemIndex))}
-                  />
+                  <SpaceBetween size="s">
+                    <TokenGroup
+                      items={files.map(f => ({ label: f.name }))}
+                      onDismiss={({ detail }) => {
+                        setFiles(files.filter((_, i) => i !== detail.itemIndex));
+                        setUploadStatus('idle');
+                      }}
+                    />
+                    {uploadStatus === 'uploading' && (
+                      <ProgressBar
+                        value={uploadProgress}
+                        label="Uploading resume..."
+                        description="Our AI is preparing to analyze your profile."
+                        status={uploadProgress === 100 ? 'success' : 'in-progress'}
+                      />
+                    )}
+                    {uploadStatus === 'success' && (
+                      <StatusIndicator type="success">
+                        File Uploaded successfully. 
+                      </StatusIndicator>
+                    )}
+                  </SpaceBetween>
                 </Box>
               )}
             </FormField>
@@ -825,6 +860,7 @@ export default function ProfileSetupPage() {
   const [activeStep, setActiveStep] = usePersistedState('profile_active_step', 0);
   const [layoutMode, setLayoutMode] = usePersistedState('profile_layout_mode', 'separate');
   const [status, setStatus] = useState(null);
+  const [appLoading, setAppLoading] = useState(false);
 
   // Field configurations
   const [activeFields, setActiveFields] = usePersistedState('autofill_active_fields', STANDARD_FIELDS.map(f => f.id));
@@ -876,6 +912,17 @@ export default function ProfileSetupPage() {
   };
 
   const stepProps = { activeFields, onAdd: addField, onRemove: removeField, layoutMode, onLayoutChange: setLayoutMode };
+
+  if (appLoading) {
+    return (
+      <Box padding="xxl" textAlign="center">
+        <SpaceBetween size="m">
+          <Spinner size="large" />
+          <Box variant="h2">Loading your profile configuration...</Box>
+        </SpaceBetween>
+      </Box>
+    );
+  }
 
   return (
     <>
