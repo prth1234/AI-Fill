@@ -66,6 +66,27 @@ body {
   flex-direction: column;
   box-sizing: border-box;
   overflow-x: hidden;
+  padding-top: 52px; /* Global offset for fixed header */
+}
+
+/* Ensure AppLayout fills viewport correctly with the body padding */
+[class*="awsui_app-layout_"] {
+  box-sizing: border-box;
+}
+
+/* Offset for fixed header */
+:root {
+  --awsui-header-height: 52px;
+}
+
+/* Ensure side navigation starts below the header */
+[class*="awsui_side-navigation_"] {
+  height: calc(100vh - 52px) !important;
+}
+
+/* Reset any internal Cloudscape margins that might conflict */
+[class*="awsui_app-layout_"] {
+  margin-top: 0 !important;
 }
 
 
