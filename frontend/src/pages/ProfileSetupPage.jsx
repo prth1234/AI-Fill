@@ -591,7 +591,7 @@ function Skills({ data, onChange, activeFields, onAdd, customFields, onCustomFie
                 </Toggle>
               }
             >
-              Skills 
+              Talent 
             </Header>
           }
         >
