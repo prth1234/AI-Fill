@@ -1031,8 +1031,11 @@ export default function ProfileSetupPage() {
 
   const [activeStep, setActiveStep] = usePersistedState('profile_active_step', 0);
   const [layoutMode, setLayoutMode] = usePersistedState('profile_layout_mode', 'separate');
-  const [status, setStatus] = useState(null);
-  const [appLoading, setAppLoading] = useState(false);
+  const [status, setStatus] = useState(null); // 'saving'|'success'|'error'|'deleting'|'deleted'
+  const [appLoading, setAppLoading] = useState(true);
+  const [completeness, setCompleteness] = useState(0);
+  const [backendSynced, setBackendSynced] = useState(null); // null=unknown, true, false
+  const [lastSaved, setLastSaved] = useState(null);
 
   // Field configurations
   const [activeFields, setActiveFields] = usePersistedState('autofill_active_fields', STANDARD_FIELDS.map(f => f.id));
@@ -1050,8 +1053,45 @@ export default function ProfileSetupPage() {
   const [certsProjects, setCertsProjects] = usePersistedState('profile_certs_projs', { certs: [], projs: [] });
   const [preferences, setPreferences] = usePersistedState('profile_prefs', { pause: true });
 
-  // Custom Fields initialized from LocalStorage (What are you automating? setup)
+  const [customPersonal, setCustomPersonal] = usePersistedState('profile_custom_personal', []);
+  const [customWork, setCustomWork] = usePersistedState('profile_custom_work', []);
+  const [customEducation, setCustomEducation] = usePersistedState('profile_custom_edu', []);
+  const [customSkills, setCustomSkills] = usePersistedState('profile_custom_skills', []);
+  const [customCerts, setCustomCerts] = usePersistedState('profile_custom_certs', []);
+  const [customPrefs, setCustomPrefs] = usePersistedState('profile_custom_prefs', []);
+
+  // ── Load profile from backend on mount ───────────────────────────────────────
   useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const { data } = await axios.get(`${API}/profile/default_user`);
+        if (data && !data.error) {
+          if (data.personal)      setPersonal(data.personal);
+          if (data.workExp)       setWorkExp(data.workExp);
+          if (data.education)     setEducation(data.education);
+          if (data.skills)        setSkills(data.skills);
+          if (data.certsProjects) setCertsProjects(data.certsProjects);
+          if (data.preferences)   setPreferences(data.preferences);
+          if (data.customFields) {
+            if (data.customFields.personal)    setCustomPersonal(data.customFields.personal);
+            if (data.customFields.work)        setCustomWork(data.customFields.work);
+            if (data.customFields.education)   setCustomEducation(data.customFields.education);
+            if (data.customFields.skills)      setCustomSkills(data.customFields.skills);
+            if (data.customFields.certs)       setCustomCerts(data.customFields.certs);
+            if (data.customFields.preferences) setCustomPrefs(data.customFields.preferences);
+          }
+          if (data.completeness !== undefined) setCompleteness(data.completeness);
+          if (data.updatedAt) setLastSaved(data.updatedAt);
+          setBackendSynced(true);
+        }
+      } catch {
+        // Backend not available — use local storage (already loaded via usePersistedState)
+        setBackendSynced(false);
+      } finally {
+        setAppLoading(false);
+      }
+    };
+    // Try to init custom keys from landing page setup
     try {
       const keys = JSON.parse(localStorage.getItem('autofill_custom_keys') || '[]');
       if (keys.length > 0) {
@@ -1062,15 +1102,10 @@ export default function ProfileSetupPage() {
           return prev;
         });
       }
-    } catch(e) {}
+    } catch {}
+    loadProfile();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const [customPersonal, setCustomPersonal] = usePersistedState('profile_custom_personal', []);
-  const [customWork, setCustomWork] = usePersistedState('profile_custom_work', []);
-  const [customEducation, setCustomEducation] = usePersistedState('profile_custom_edu', []);
-  const [customSkills, setCustomSkills] = usePersistedState('profile_custom_skills', []);
-  const [customCerts, setCustomCerts] = usePersistedState('profile_custom_certs', []);
-  const [customPrefs, setCustomPrefs] = usePersistedState('profile_custom_prefs', []);
 
   const profileData = {
     personal, workExp, education, skills, certsProjects, preferences,
@@ -1079,8 +1114,27 @@ export default function ProfileSetupPage() {
 
   const handleSubmit = async () => {
     setStatus('saving');
-    try { await axios.post(`${API}/profile`, profileData); setStatus('success'); } 
-    catch(err) { setStatus('error'); }
+    try {
+      const { data } = await axios.post(`${API}/profile`, profileData);
+      setBackendSynced(data.opensearch === true || data.opensearch !== false);
+      if (data.completeness !== undefined) setCompleteness(data.completeness);
+      setLastSaved(new Date().toISOString());
+      setStatus('success');
+    } catch {
+      setStatus('error');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete your profile from the database? Local data will stay.')) return;
+    setStatus('deleting');
+    try {
+      await axios.delete(`${API}/profile/default_user`);
+      setBackendSynced(false);
+      setStatus('deleted');
+    } catch {
+      setStatus('error');
+    }
   };
 
   const stepProps = { activeFields, onAdd: addField, onRemove: removeField, layoutMode, onLayoutChange: setLayoutMode };
@@ -1096,10 +1150,52 @@ export default function ProfileSetupPage() {
     );
   }
 
+  // ── Completeness bar color ────────────────────────────────────────────────
+  const completenessColor = completeness >= 80 ? '#10b981' : completeness >= 50 ? '#f59e0b' : '#ef4444';
+
   return (
     <>
-      {status === 'success' && <Alert type="success" header="Saved!" dismissible onDismiss={() => setStatus(null)}>Profile saved</Alert>}
-      {status === 'error' && <Alert type="error" header="Failed!" dismissible onDismiss={() => setStatus(null)}>Error saving</Alert>}
+      {/* Backend sync status banner */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 16px', marginBottom: '12px',
+        borderRadius: '10px',
+        background: backendSynced === true ? 'rgba(16,185,129,0.08)' : backendSynced === false ? 'rgba(245,158,11,0.08)' : 'transparent',
+        border: backendSynced === true ? '1px solid rgba(16,185,129,0.2)' : backendSynced === false ? '1px solid rgba(245,158,11,0.2)' : 'none',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: backendSynced === true ? '#10b981' : '#f59e0b' }}>
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+              {backendSynced === true
+                ? <path d="M13.5 2L6 9.5 2.5 6 1 7.5l5 5 9-9z"/>
+                : <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="2"/>}
+            </svg>
+            {backendSynced === true ? `Synced to OpenSearch${lastSaved ? ` · ${new Date(lastSaved).toLocaleTimeString()}` : ''}` : 'Local only — OpenSearch offline'}
+          </div>
+
+          {/* Completeness */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '100px', height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+              <div style={{ width: `${completeness}%`, height: '100%', background: completenessColor, borderRadius: '3px', transition: 'width 0.4s ease' }} />
+            </div>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: completenessColor }}>{completeness}% complete</span>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={handleDelete}
+            disabled={status === 'deleting'}
+            style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '6px', border: '1px solid #fca5a5', background: 'transparent', color: '#ef4444', cursor: 'pointer' }}
+          >
+            {status === 'deleting' ? 'Deleting…' : 'Delete from DB'}
+          </button>
+        </div>
+      </div>
+
+      {status === 'success' && <Alert type="success" header="Profile Saved!" dismissible onDismiss={() => setStatus(null)}>Your profile has been saved to OpenSearch and is ready for the AI agent.</Alert>}
+      {status === 'error' && <Alert type="error" header="Save Failed" dismissible onDismiss={() => setStatus(null)}>Could not save profile. Check backend connection.</Alert>}
+      {status === 'deleted' && <Alert type="warning" header="Profile Deleted" dismissible onDismiss={() => setStatus(null)}>Profile data removed from OpenSearch. Local cache still intact.</Alert>}
       
       {layoutMode === 'separate' ? (
         <Wizard

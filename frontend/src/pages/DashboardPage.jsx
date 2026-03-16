@@ -8,9 +8,7 @@ import SpaceBetween from '@cloudscape-design/components/space-between';
 import ColumnLayout from '@cloudscape-design/components/column-layout';
 import Button from '@cloudscape-design/components/button';
 import Box from '@cloudscape-design/components/box';
-import StatusIndicator from '@cloudscape-design/components/status-indicator';
-import Link from '@cloudscape-design/components/link';
-import Alert from '@cloudscape-design/components/alert';
+import ProgressBar from '@cloudscape-design/components/progress-bar';
 import axios from 'axios';
 
 const API = 'http://localhost:4000/api';
@@ -25,14 +23,30 @@ function StatBox({ label, value, description }) {
   );
 }
 
+function ServiceChip({ name, ok }) {
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', gap: '6px',
+      padding: '5px 12px', borderRadius: '9999px', fontSize: '12.5px', fontWeight: 500,
+      border: `1px solid ${ok ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.3)'}`,
+      background: ok ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)',
+      color: ok ? '#10b981' : '#f59e0b',
+    }}>
+      <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'currentColor', display: 'inline-block', boxShadow: '0 0 6px currentColor' }} />
+      {name}: {ok ? 'Online' : 'Offline'}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
+  const [health, setHealth] = useState(null);
   const [backendOk, setBackendOk] = useState(null);
 
   useEffect(() => {
     axios.get(`${API}/health`)
-      .then(() => setBackendOk(true))
+      .then(r => { setBackendOk(true); setHealth(r.data); })
       .catch(() => setBackendOk(false));
     axios.get(`${API}/stats`)
       .then(r => setStats(r.data))
@@ -62,15 +76,39 @@ export default function DashboardPage() {
     >
       <SpaceBetween size="l">
 
+        {/* Service Health Row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <Box variant="small" color="text-status-inactive">Services:</Box>
+          <ServiceChip name="Backend API" ok={backendOk === true} />
+          <ServiceChip name="OpenSearch" ok={health?.services?.opensearch === true} />
+          <ServiceChip name="Ollama LLM" ok={health?.services?.ollama === true} />
+        </div>
 
+        {/* Stats */}
         <ColumnLayout columns={4}>
           <StatBox label="Applications Filled" value={stats?.totalFilled ?? '—'} description="All time" />
           <StatBox label="Forms Completed" value={stats?.formsCompleted ?? '—'} description="Successful" />
           <StatBox label="Hours Saved" value={stats?.hoursSaved ?? '—'} description="Estimated" />
-          <StatBox label="Profile Completeness" value={stats?.profileComplete ?? '—'} description="%" />
+          <Container>
+            <Box variant="awsui-key-label">Profile Completeness</Box>
+            <Box padding={{ vertical: 's' }}>
+              <ProgressBar
+                value={stats?.profileComplete ?? 0}
+                label={`${stats?.profileComplete ?? 0}%`}
+                status={
+                  stats?.profileComplete >= 80 ? 'success'
+                  : stats?.profileComplete >= 50 ? 'in-progress'
+                  : 'error'
+                }
+              />
+            </Box>
+            <Box variant="small" color="text-status-inactive">
+              {stats?.profileComplete >= 80
+                ? 'Profile ready for AI filling'
+                : 'Complete your profile for best results'}
+            </Box>
+          </Container>
         </ColumnLayout>
-
-
 
         <Cards
           cardDefinition={{
@@ -81,9 +119,24 @@ export default function DashboardPage() {
             ],
           }}
           items={[
-            { title: '1.  Set Up Your Profile', desc: 'Fill in your personal info, work history, education, skills, and job preferences. The AI will use this to fill every application field.', cta: 'Start Profile', action: () => navigate('/profile') },
-            { title: '2.  Launch AutoFill', desc: 'Enter a job posting URL (Workday, Greenhouse, Lever, etc.) and let the AI + Playwright engine fill the entire application for you.', cta: 'Launch Now', action: () => navigate('/autofill') },
-            { title: '3.  Review & Submit', desc: 'Before the bot submits, you get a final review screen to confirm all answers. You stay in control, always.', cta: 'View History', action: () => navigate('/jobs') },
+            {
+              title: '1.  Set Up Your Profile',
+              desc: 'Fill in your personal info, work history, education, skills, and job preferences. The AI will use this to fill every application field.',
+              cta: 'Start Profile',
+              action: () => navigate('/profile'),
+            },
+            {
+              title: '2.  Launch AutoFill',
+              desc: 'Enter a job posting URL (Workday, Greenhouse, Lever, etc.) and let the AI + Playwright engine fill the entire application for you.',
+              cta: 'Launch Now',
+              action: () => navigate('/autofill'),
+            },
+            {
+              title: '3.  Ask the AI Agent',
+              desc: 'Use the floating AI chat button (bottom-right ✦) to ask questions about your profile. The LLM reads your profile from OpenSearch and answers intelligently.',
+              cta: 'View History',
+              action: () => navigate('/jobs'),
+            },
           ]}
           columns={3}
         />
@@ -92,7 +145,7 @@ export default function DashboardPage() {
           <ColumnLayout columns={3} variant="text-grid">
             <div>
               <Box variant="h3">AI Context Layer</Box>
-              <Box variant="p">Your profile is stored in OpenSearch (vector DB). When filling a form, the LLM retrieves semantically relevant chunks — so it always picks the right job for the right field.</Box>
+              <Box variant="p">Your profile is stored in OpenSearch. When filling a form or answering a question, the LLM retrieves your full structured profile context and generates accurate, grounded answers.</Box>
             </div>
             <div>
               <Box variant="h3">Playwright Automation</Box>

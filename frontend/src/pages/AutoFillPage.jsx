@@ -150,7 +150,7 @@ export default function AutoFillPage() {
         </Container>
 
         {status !== 'idle' && (
-          <Container header={<Header variant="h2">Session Progress</Header>}>
+          <Container header={<Header variant="h3">Session Progress</Header>}>
             <SpaceBetween size="m">
               <StatusIndicator type={
                 status === 'running' ? 'loading' :
