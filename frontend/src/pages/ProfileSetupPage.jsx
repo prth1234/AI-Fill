@@ -28,6 +28,7 @@ import Spinner from '@cloudscape-design/components/spinner';
 import Icon from '@cloudscape-design/components/icon';
 import axios from 'axios';
 import CustomFieldBuilder from '../components/CustomFieldBuilder';
+import GradientText from '../components/GradientText';
 import { STANDARD_FIELDS, TEMPLATES } from '../fieldSchema';
 
 const MONTH_OPTIONS = [
@@ -237,21 +238,27 @@ function PersonalInfo({ data, onChange, activeFields, onAdd, onRemove, customFie
                 
                 {files.length > 0 && (
                   <Box margin={{ top: 's' }}>
-                    <SpaceBetween size="s">
-                      <TokenGroup
-                        disabled={!activeFields.includes('resume_upload')}
-                        items={files.map(f => ({ label: f.name }))}
-                        onDismiss={({ detail }) => {
-                          setFiles(files.filter((_, i) => i !== detail.itemIndex));
-                          setUploadStatus('idle');
-                        }}
-                      />
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                        {files.map((f, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            className="skill-chip"
+                            disabled={!activeFields.includes('resume_upload')}
+                            onClick={() => {
+                              setFiles(files.filter((_, idx) => idx !== i));
+                              setUploadStatus('idle');
+                            }}
+                          >
+                            {f.name} <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                          </button>
+                        ))}
+                      </div>
                       {uploadStatus === 'success' && (
                         <StatusIndicator type="success">
                           File Uploaded successfully. 
                         </StatusIndicator>
                       )}
-                    </SpaceBetween>
                   </Box>
                 )}
               </FormField>
@@ -360,7 +367,9 @@ function WorkExperience({ data, onChange, activeFields, onAdd, onRemove, customF
     <StepWrapper sections={['work']} activeFields={activeFields} onAdd={onAdd} onRemove={onRemove} layoutMode={layoutMode} onLayoutChange={onLayoutChange} hideLayoutToggle={hideLayoutToggle}>
       <SpaceBetween size="l">
         {exps.map((exp, idx) => (
-        <Container key={exp.id} header={<Header variant="h2" actions={<Button variant="icon" iconName="remove" onClick={() => removeExp(idx)} />}>{exp.company || `Experience ${idx + 1}`}</Header>}>
+        <Container key={exp.id} header={<Header variant="h3" actions={<Button variant="icon" iconName="remove" onClick={() => removeExp(idx)} />}>
+          <GradientText>{exp.company || `Experience ${idx + 1}`}</GradientText>
+        </Header>}>
           <SpaceBetween size="m">
             <ColumnLayout columns={2}>
               <DismissibleField id="work_company" activeFields={activeFields} onAdd={onAdd}><FormField label="Company Name"><Input disabled={!activeFields.includes('work_company')} placeholder="E.g. Apple" value={exp.company} onChange={({ detail }) => updateExp(idx, 'company', detail.value)} /></FormField></DismissibleField>
@@ -452,7 +461,9 @@ function Education({ data, onChange, activeFields, onAdd, onRemove, customFields
     <StepWrapper sections={['education']} activeFields={activeFields} onAdd={onAdd} onRemove={onRemove} layoutMode={layoutMode} onLayoutChange={onLayoutChange} hideLayoutToggle={hideLayoutToggle}>
       <SpaceBetween size="l">
         {edus.map((edu, idx) => (
-        <Container key={edu.id} header={<Header variant="h2" actions={<Button variant="icon" iconName="remove" onClick={() => removeEdu(idx)} />}>{edu.institution || `Education ${idx + 1}`}</Header>}>
+        <Container key={edu.id} header={<Header variant="h3" actions={<Button variant="icon" iconName="remove" onClick={() => removeEdu(idx)} />}>
+          <GradientText>{edu.institution || `Education ${idx + 1}`}</GradientText>
+        </Header>}>
           <SpaceBetween size="m">
             <ColumnLayout columns={2}>
               <DismissibleField id="edu_inst" activeFields={activeFields} onAdd={onAdd}><FormField label="Institution"><Input disabled={!activeFields.includes('edu_inst')} placeholder="E.g. Stanford University" value={edu.institution} onChange={({ detail }) => updateEdu(idx, 'institution', detail.value)} /></FormField></DismissibleField>
@@ -591,7 +602,7 @@ function Skills({ data, onChange, activeFields, onAdd, customFields, onCustomFie
                 </Toggle>
               }
             >
-              Talent 
+              Talent
             </Header>
           }
         >
@@ -1164,14 +1175,9 @@ export default function ProfileSetupPage() {
         border: backendSynced === true ? '1px solid rgba(16,185,129,0.2)' : backendSynced === false ? '1px solid rgba(245,158,11,0.2)' : 'none',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: backendSynced === true ? '#10b981' : '#f59e0b' }}>
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-              {backendSynced === true
-                ? <path d="M13.5 2L6 9.5 2.5 6 1 7.5l5 5 9-9z"/>
-                : <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="2"/>}
-            </svg>
-            {backendSynced === true ? `Synced to OpenSearch${lastSaved ? ` · ${new Date(lastSaved).toLocaleTimeString()}` : ''}` : 'Local only — OpenSearch offline'}
-          </div>
+            <StatusIndicator type={backendSynced === true ? "success" : "info"}>
+              {backendSynced === true ? "Profile Synced" : "Ready"}
+            </StatusIndicator>
 
           {/* Completeness */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1188,14 +1194,14 @@ export default function ProfileSetupPage() {
             disabled={status === 'deleting'}
             style={{ fontSize: '12px', padding: '4px 12px', borderRadius: '6px', border: '1px solid #fca5a5', background: 'transparent', color: '#ef4444', cursor: 'pointer' }}
           >
-            {status === 'deleting' ? 'Deleting…' : 'Delete from DB'}
+            {status === 'deleting' ? 'Deleting…' : 'Delete your profile'}
           </button>
         </div>
       </div>
 
-      {status === 'success' && <Alert type="success" header="Profile Saved!" dismissible onDismiss={() => setStatus(null)}>Your profile has been saved to OpenSearch and is ready for the AI agent.</Alert>}
+      {status === 'success' && <Alert type="success" header="Profile Saved!" dismissible onDismiss={() => setStatus(null)}>Your professional profile is synced and ready for the AI assistant.</Alert>}
       {status === 'error' && <Alert type="error" header="Save Failed" dismissible onDismiss={() => setStatus(null)}>Could not save profile. Check backend connection.</Alert>}
-      {status === 'deleted' && <Alert type="warning" header="Profile Deleted" dismissible onDismiss={() => setStatus(null)}>Profile data removed from OpenSearch. Local cache still intact.</Alert>}
+      {status === 'deleted' && <Alert type="warning" header="Profile Deleted" dismissible onDismiss={() => setStatus(null)}>Profile data removed from database. Local cache still intact.</Alert>}
       
       {layoutMode === 'separate' ? (
         <Wizard

@@ -1,0 +1,512 @@
+import os
+import uuid
+import time
+import json
+import asyncio
+from datetime import datetime
+from typing import Optional, List, Dict, Any
+
+from fastapi import FastAPI, HTTPException, Body, Path, Query, Response
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+import httpx
+from opensearchpy import OpenSearch
+from dotenv import load_dotenv
+
+load_dotenv()
+
+app = FastAPI(title="AI AutoFill Python Backend")
+
+# ─── Configuration ───────────────────────────────────────────────────────────
+PORT = int(os.getenv("PORT", 4000))
+OPENSEARCH_URL = os.getenv("OPENSEARCH_URL", "http://localhost:9200")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ─── OpenSearch Client ────────────────────────────────────────────────────────
+os_client = OpenSearch(
+    hosts=[OPENSEARCH_URL],
+    use_ssl=False,
+    verify_certs=False,
+    ssl_show_warn=False
+)
+
+PROFILE_INDEX = "autofill_profiles"
+JOBS_INDEX = "autofill_jobs"
+
+# ─── In-memory fallback store ──────────────────────────────────────────────────
+# Mirroring global._profileStore in JS
+_profile_store = {}
+# Mirroring sessions Map in JS
+_sessions = {}
+
+# ─── Helpers ──────────────────────────────────────────────────────────────────
+def build_full_text(profile: Dict[str, Any]) -> str:
+    parts = []
+    personal = profile.get("personal", {})
+    parts.append(f"{personal.get('firstName', '')} {personal.get('lastName', '')} {personal.get('email', '')} {personal.get('summary', '')} {personal.get('city', '')} {personal.get('country', '')}")
+    
+    for e in profile.get("workExp", {}).get("experiences", []):
+        parts.append(f"{e.get('title', '')} at {e.get('company', '')} {e.get('description', '')} {e.get('achievements', '')}")
+        
+    for e in profile.get("education", {}).get("education", []):
+        parts.append(f"{e.get('degree', {}).get('label', '')} in {e.get('field', '')} at {e.get('institution', '')} GPA {e.get('gpa', '')} {e.get('coursework', '')}")
+    
+    skills = profile.get("skills", {})
+    if skills.get("skillsList"):
+        parts.append(", ".join(skills["skillsList"]))
+    if skills.get("skillsRaw"):
+        parts.append(skills["skillsRaw"])
+        
+    for c in profile.get("certsProjects", {}).get("certifications", []):
+        parts.append(f"{c.get('name', '')} {c.get('issuer', '')}")
+        
+    for pr in profile.get("certsProjects", {}).get("projects", []):
+        parts.append(f"{pr.get('name', '')} {pr.get('description', '')} {pr.get('techStack', '')}")
+        
+    full_text = " ".join(parts)
+    import re
+    return re.sub(r'\s+', ' ', full_text).strip()
+
+def compute_completeness(profile: Dict[str, Any]) -> int:
+    personal = profile.get("personal", {})
+    work_exp = profile.get("workExp", {})
+    edu = profile.get("education", {})
+    skills = profile.get("skills", {})
+    certs = profile.get("certsProjects", {})
+    prefs = profile.get("preferences", {})
+
+    checks = [
+        bool(personal.get("firstName")),
+        bool(personal.get("lastName")),
+        bool(personal.get("email")),
+        bool(personal.get("phone")),
+        bool(personal.get("summary")),
+        bool(personal.get("city")),
+        bool(work_exp.get("experiences") and len(work_exp["experiences"]) > 0),
+        bool(edu.get("education") and len(edu["education"]) > 0),
+        bool(skills.get("skillsList") or skills.get("skillsRaw")),
+        bool(certs.get("certifications") or certs.get("projects")),
+        bool(prefs.get("roles") or prefs.get("salary"))
+    ]
+    score = round((sum(checks) / len(checks)) * 100)
+    return score
+
+def build_profile_context(profile: Dict[str, Any]) -> str:
+    p = profile.get("personal", {})
+    work_exps_list = profile.get("workExp", {}).get("experiences", [])
+    work_exps = "\n".join([
+        f"- {e.get('title', 'Role')} at {e.get('company', 'Company')} ({e.get('startDate', '?')} – {'Present' if e.get('current') else (e.get('endDate', '?'))}): {e.get('description', '')} Achievements: {e.get('achievements', '')}"
+        for e in work_exps_list
+    ])
+    
+    edus_list = profile.get("education", {}).get("education", [])
+    edus = "\n".join([
+        f"- {e.get('degree', {}).get('label', '')} in {e.get('field', '')} at {e.get('institution', '')} (GPA: {e.get('gpa', 'N/A')})"
+        for e in edus_list
+    ])
+    
+    sk = profile.get("skills", {})
+    skills_text = ", ".join(sk.get("skillsList", [])) if sk.get("skillsList") else (sk.get("skillsRaw") or 'Not specified')
+    
+    certs_list = profile.get("certsProjects", {}).get("certifications", [])
+    certs = "\n".join([f"- {c.get('name', '')} by {c.get('issuer', '')}" for c in certs_list])
+    
+    projs_list = profile.get("certsProjects", {}).get("projects", [])
+    projs = "\n".join([f"- {pr.get('name', '')}: {pr.get('description', '')} (Tech: {pr.get('techStack', '')})" for pr in projs_list])
+    
+    prefs = profile.get("preferences", {})
+    
+    return f"""
+=== USER PROFILE ===
+
+PERSONAL INFO:
+  Name: {p.get('firstName', '')} {p.get('lastName', '')}
+  Email: {p.get('email', 'N/A')}
+  Phone: {p.get('phone', 'N/A')}
+  Location: {", ".join(filter(None, [p.get('city'), p.get('state'), p.get('country')])) or 'N/A'}
+  LinkedIn: {p.get('linkedin', 'N/A')}
+  GitHub: {p.get('github', 'N/A')}
+  Work Authorization: {p.get('workAuth', {}).get('label', 'N/A')}
+  Summary: {p.get('summary', 'N/A')}
+
+WORK EXPERIENCE:
+{work_exps or '  None provided'}
+
+EDUCATION:
+{edus or '  None provided'}
+
+SKILLS:
+  {skills_text}
+  Total Experience: {sk.get('yoe', 0)} years {sk.get('moe', 0)} months
+
+CERTIFICATIONS:
+{certs or '  None provided'}
+
+PROJECTS:
+{projs or '  None provided'}
+
+JOB PREFERENCES:
+  Roles: {", ".join(prefs.get("roles", [])) or 'N/A'}
+  Salary: {prefs.get('salary', 'N/A')}
+  Work Type: {prefs.get('workType', {}).get('label', 'N/A')}
+  Relocation: {'Yes' if p.get('willingToRelocate') else 'No'}
+  Notice Period: {prefs.get('notice', {}).get('label', 'N/A')}
+""".strip()
+
+# ─── Safe OpenSearch helpers ──────────────────────────────────────────────────
+def os_get(user_id: str) -> Optional[Dict[str, Any]]:
+    try:
+        result = os_client.get(index=PROFILE_INDEX, id=user_id)
+        return result["_source"]
+    except:
+        return None
+
+def os_upsert(user_id: str, profile: Dict[str, Any]) -> bool:
+    try:
+        os_client.index(
+            index=PROFILE_INDEX,
+            id=user_id,
+            body=profile,
+            refresh=True
+        )
+        return True
+    except:
+        return False
+
+def os_delete(user_id: str) -> bool:
+    try:
+        os_client.delete(index=PROFILE_INDEX, id=user_id, refresh=True)
+        return True
+    except:
+        return False
+
+# ─── Lifecycle — Ensure Indexes ───────────────────────────────────────────────
+@app.on_event("startup")
+async def startup_event():
+    indexes = [
+        {
+            "index": PROFILE_INDEX,
+            "body": {
+                "mappings": {
+                    "properties": {
+                        "userId":       {"type": "keyword"},
+                        "updatedAt":    {"type": "date"},
+                        "fullText":     {"type": "text", "analyzer": "standard"},
+                    }
+                }
+            }
+        },
+        {
+            "index": JOBS_INDEX,
+            "body": {
+                "mappings": {
+                    "properties": {
+                        "sessionId":   {"type": "keyword"},
+                        "userId":      {"type": "keyword"},
+                        "url":         {"type": "keyword"},
+                        "platform":    {"type": "keyword"},
+                        "status":      {"type": "keyword"},
+                        "progress":    {"type": "integer"},
+                        "createdAt":   {"type": "date"},
+                        "updatedAt":   {"type": "date"},
+                    }
+                }
+            }
+        }
+    ]
+    for idx in indexes:
+        try:
+            if not os_client.indices.exists(index=idx["index"]):
+                os_client.indices.create(index=idx["index"], body=idx["body"])
+                print(f"✅ Created index: {idx['index']}")
+        except Exception as e:
+            print(f"⚠️  Could not check/create index {idx['index']}: {e}")
+
+# ─── Health ───────────────────────────────────────────────────────────────────
+@app.get("/api/health")
+async def health_check():
+    opensearch_ok = False
+    ollama_ok = False
+    try:
+        os_client.ping()
+        opensearch_ok = True
+    except:
+        pass
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            r = await client.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=2.0)
+            ollama_ok = r.status_code == 200
+    except:
+        pass
+        
+    return {
+        "status": "ok",
+        "time": datetime.utcnow().isoformat() + "Z",
+        "services": {"opensearch": opensearch_ok, "ollama": ollama_ok}
+    }
+
+# ─── Stats ────────────────────────────────────────────────────────────────────
+@app.get("/api/stats")
+async def get_stats():
+    try:
+        jobs_res = os_client.search(
+            index=JOBS_INDEX,
+            body={
+                "aggs": {"by_status": {"terms": {"field": "status"}}},
+                "size": 0
+            }
+        )
+        buckets = jobs_res.get("aggregations", {}).get("by_status", {}).get("buckets", [])
+        submitted = next((b["doc_count"] for b in buckets if b["key"] == "submitted"), 0)
+        total = sum(b["doc_count"] for b in buckets)
+        
+        user_id = "default_user"
+        profile = os_get(user_id) or _profile_store.get(user_id)
+        profile_complete = compute_completeness(profile) if profile else 0
+        
+        return {
+            "totalFilled": total,
+            "formsCompleted": submitted,
+            "hoursSaved": f"{submitted * 0.75:.1f}",
+            "profileComplete": profile_complete
+        }
+    except:
+        user_id = "default_user"
+        profile = _profile_store.get(user_id)
+        return {
+            "totalFilled": 0, "formsCompleted": 0, "hoursSaved": "0.0",
+            "profileComplete": compute_completeness(profile) if profile else 0
+        }
+
+# ─── Profile CRUD ─────────────────────────────────────────────────────────────
+@app.post("/api/profile")
+async def create_profile(body: Dict[str, Any] = Body(...)):
+    user_id = body.get("userId", "default_user")
+    profile = {**body, "userId": user_id, "updated_at": datetime.utcnow().isoformat() + "Z"}
+    profile["fullText"] = build_full_text(profile)
+    profile["completeness"] = compute_completeness(profile)
+    
+    saved = os_upsert(user_id, profile)
+    _profile_store[user_id] = profile
+    
+    return {
+        "success": True, 
+        "userId": user_id, 
+        "completeness": profile["completeness"], 
+        "opensearch": saved
+    }
+
+@app.get("/api/profile/{user_id}")
+async def get_profile(user_id: str = "default_user"):
+    profile = os_get(user_id) or _profile_store.get(user_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return profile
+
+@app.get("/api/profile")
+async def get_profile_default():
+    return await get_profile("default_user")
+
+@app.put("/api/profile/{user_id}")
+async def update_profile(user_id: str, body: Dict[str, Any] = Body(...)):
+    existing = os_get(user_id) or _profile_store.get(user_id, {})
+    updated = {**existing, **body, "userId": user_id, "updatedAt": datetime.utcnow().isoformat() + "Z"}
+    updated["fullText"] = build_full_text(updated)
+    updated["completeness"] = compute_completeness(updated)
+    
+    saved = os_upsert(user_id, updated)
+    _profile_store[user_id] = updated
+    
+    return {
+        "success": True, 
+        "userId": user_id, 
+        "completeness": updated["completeness"], 
+        "opensearch": saved
+    }
+
+@app.delete("/api/profile/{user_id}")
+async def delete_profile(user_id: str):
+    os_deleted = os_delete(user_id)
+    if user_id in _profile_store:
+        _profile_store.pop(user_id, None)
+    return {"success": True, "userId": user_id, "opensearch": os_deleted}
+
+# ─── LLM Agent ────────────────────────────────────────────────────────────────
+class AskRequest(BaseModel):
+    question: str
+    userId: Optional[str] = "default_user"
+
+@app.post("/api/agent/ask")
+async def agent_ask(req: AskRequest):
+    if not req.question.strip():
+        raise HTTPException(status_code=400, detail="question is required")
+    
+    user_id = req.userId or "default_user"
+    profile = os_get(user_id) or _profile_store.get(user_id)
+    profile_context = build_profile_context(profile) if profile else None
+    
+    if profile_context:
+        system_prompt = f"You are an intelligent AI assistant for a job application autofill tool.\nYou have been given the user's complete professional profile below.\nAnswer questions accurately and helpfully based ONLY on this profile data.\nIf the information is not in the profile, say so clearly.\nKeep answers concise unless asked for detail.\n\n{profile_context}"
+    else:
+        system_prompt = "You are an AI assistant for a job application autofill tool.\nThe user has not yet set up their profile. Encourage them to complete their profile at the Profile Setup page.\nYou can still answer general questions about the application."
+
+    answer = ""
+    model_used = OLLAMA_MODEL
+    ollama_available = True
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            ollama_res = await client.post(
+                f"{OLLAMA_BASE_URL}/api/chat",
+                json={
+                    "model": OLLAMA_MODEL,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": req.question}
+                    ],
+                    "stream": False,
+                    "options": {"temperature": 0.3, "num_predict": 512}
+                },
+                timeout=60.0
+            )
+            data = ollama_res.json()
+            answer = data.get("message", {}).get("content", data.get("response", "No response from LLM."))
+    except Exception as e:
+        ollama_available = False
+        if profile_context:
+            answer = f"⚠️ The local LLM (Ollama) is not running. Here is a summary of what I know from your profile:\n\n{profile_context}\n\nTo enable AI-powered answers, please start Ollama: `ollama serve` and pull a model: `ollama pull llama3.2`"
+        else:
+            answer = "⚠️ The local LLM (Ollama) is offline and no profile was found. Please set up your profile and start Ollama."
+        model_used = "fallback"
+
+    return {
+        "answer": answer,
+        "model": model_used,
+        "ollamaAvailable": ollama_available,
+        "hasProfile": bool(profile),
+        "userId": user_id
+    }
+
+# ─── AutoFill Management ──────────────────────────────────────────────────────
+@app.post("/api/autofill/start")
+async def start_autofill(body: Dict[str, Any] = Body(...)):
+    session_id = str(uuid.uuid4())
+    session_data = {
+        **body, "sessionId": session_id, "status": "running", 
+        "progress": 0, "logs": [], "createdAt": datetime.utcnow().isoformat() + "Z"
+    }
+    _sessions[session_id] = session_data
+    
+    try:
+        os_client.index(
+            index=JOBS_INDEX,
+            id=session_id,
+            body={
+                "sessionId": session_id, "url": body.get("url"), 
+                "platform": body.get("platform"), "status": "running", "progress": 0,
+                "createdAt": session_data["createdAt"], "updatedAt": session_data["createdAt"]
+            }
+        )
+    except:
+        pass
+    
+    # Start background task simulation
+    asyncio.create_task(simulate_session(session_id))
+    return {"sessionId": session_id, "status": "started"}
+
+@app.get("/api/autofill/status/{session_id}")
+async def get_autofill_status(session_id: str):
+    session = _sessions.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return session
+
+@app.post("/api/autofill/approve/{session_id}")
+async def approve_autofill(session_id: str):
+    session = _sessions.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    session["status"] = "done"
+    session["progress"] = 100
+    try:
+        os_client.update(
+            index=JOBS_INDEX,
+            id=session_id,
+            body={"doc": {"status": "submitted", "progress": 100, "updatedAt": datetime.utcnow().isoformat() + "Z"}}
+        )
+    except:
+        pass
+    return {"success": True}
+
+@app.post("/api/autofill/stop/{session_id}")
+async def stop_autofill(session_id: str):
+    session = _sessions.get(session_id)
+    if session:
+        session["status"] = "stopped"
+        session["stopped"] = True
+    return {"success": True}
+
+# ─── Job History ──────────────────────────────────────────────────────────────
+@app.get("/api/jobs")
+async def get_jobs():
+    try:
+        result = os_client.search(
+            index=JOBS_INDEX,
+            body={
+                "query": {"match_all": {}}, 
+                "sort": [{"createdAt": {"order": "desc"}}], 
+                "size": 100
+            }
+        )
+        hits = [h["_source"] for h in result["hits"]["hits"]]
+        return hits
+    except:
+        # Fallback to in-memory _sessions
+        jobs = list(_sessions.values())
+        jobs.sort(key=lambda x: x.get("createdAt", ""), reverse=True)
+        return jobs
+
+# ─── Simulation Stub ──────────────────────────────────────────────────────────
+async def simulate_session(session_id: str):
+    steps = [
+        {"pct": 10, "log": "🌐 Browser launched, navigating to URL…"},
+        {"pct": 20, "log": "🔍 Detecting form platform…"},
+        {"pct": 30, "log": "📋 Found 24 form fields. Fetching user profile from OpenSearch…"},
+        {"pct": 45, "log": "🧠 LLM generating answers for Personal Info section…"},
+        {"pct": 55, "log": "✍️  Filling: Name, Email, Phone, Location…"},
+        {"pct": 65, "log": "🧠 LLM generating answers for Work Experience section…"},
+        {"pct": 75, "log": "✍️  Filling: Job titles, company names, dates, descriptions…"},
+        {"pct": 85, "log": "🧠 LLM generating answers for Skills & Education…"},
+        {"pct": 95, "log": "✅ All fields filled. Pausing for your review…", "pause": True},
+    ]
+    
+    for step in steps:
+        await asyncio.sleep(2)
+        session = _sessions.get(session_id)
+        if not session or session.get("stopped"):
+            break
+        
+        session.update({
+            "progress": step["pct"],
+            "log": step["log"],
+            "level": "info"
+        })
+        
+        if step.get("pause"):
+            session["status"] = "paused"
+            break
+
+if __name__ == "__main__":
+    import uvicorn
+    print(f"\n🚀 AI AutoFill Python Backend (FastAPI) starting on http://localhost:{PORT}")
+    uvicorn.run(app, host="0.0.0.0", port=PORT)

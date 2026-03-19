@@ -1,0 +1,26 @@
+@keyframes gradient-move {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animated-gradient-text {
+  display: inline-block;
+  font-weight: 600;
+  cursor: default;
+}
+
+.animated-gradient-text .text-content {
+  background-image: linear-gradient(to right, var(--gradient-colors));
+  background-size: 300% 100%;
+  background-clip: text;
+  -webkit-background-clip: text; /* Vendor prefix for text clipping */
+  color: transparent; /* Makes the text transparent so background shows through */
+  display: inline-block;
+  animation: gradient-move var(--animation-duration) ease-in-out infinite;
+  transition: transform 0.3s ease;
+}
+
+.animated-gradient-text:hover .text-content {
+  transform: scale(1.02);
+}
