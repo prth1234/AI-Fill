@@ -1,0 +1,156 @@
+{
+  "default_user": {
+    "personal": {
+      "firstName": "Parth",
+      "lastName": "Singh",
+      "email": "dearparthsingh@gmail.com",
+      "phone": "9205767228",
+      "summary": "Results-driven B.Tech CSE graduate with a proven track record in software development, design & architecture, and a passion for solving simple & complex problems. A strategic problem-solver with strong technical, interpersonal & communication skills, committed to delivering high-impact outcomes across Software Development, Cloud & AI.",
+      "city": "Bengaluru",
+      "country": "India",
+      "linkedin": "https://www.linkedin.com/in/parthsingh2002/",
+      "github": "https://github.com/prth1234",
+      "phoneCode": "+91 (IN)",
+      "phoneType": "Mobile",
+      "website": "https://portfolio-2025-two-ecru.vercel.app/",
+      "state": "KA",
+      "zipcode": "560102",
+      "workAuth": {
+        "label": "Green Card",
+        "value": "gc"
+      },
+      "willingToRelocate": true,
+      "dob": "2002-06-10"
+    },
+    "workExp": {
+      "experiences": [
+        {
+          "id": 1,
+          "company": "Snow",
+          "title": "Assoc SW Engineer",
+          "description": "Part of an agile Cloud Cost Optimization (FinOps) team, developing a platform to analyze, visualize & optimize cloud spend for Fortune 500 companies, achieving 30% average cost savings. The platform maximises business value by aligning cloud spending with business objectives.\n\t\u2022\tArchitected & developed scalable & resilient microservices for a Hybrid Cloud Cost Optimization platform, enabling cost management, auto-scaling, right-sizing of cloud resources & proactive cloud governance with enhanced visibility for 50k + customers.\n\t\u2022\tE2E ownership of FinOps AI agent built using LangGraph, with multi-decision, multi-agent orchestration across RAG, Costs API, Cube, Waste Detection, ITAM Agents featuring parallel & serial workflows backed by redistributed memory manager & zero-trust guardrails for access & data security.\n\t\u2022\tShipped 10+ AI agents automating FinOps workflows\u2014from spend analysis & visualization to cost attribution, intelligent rightsizing, and actionable cost optimization\n\t\u2022\tTrained ML models for AI recommendations, budgeting-forecasting, pattern recognition & anomaly detection in cloud spends optimising & achieving measurable savings.\n\t\u2022\tDeveloped & enhanced resource level breakdown APIs, enabling granular cost by categorizing cloud expenses across line items, services, regions & usage patterns.\n\t\u2022\tBuild scalable cloud bill parsers for multiple cloud vendors & datarbricks to ingest, plot & store cost data in datalakehouse enabling cost management & optimization.\n\t\u2022\tDesigned high-performance ETL pipeline to transform, normalize & plot cloud billing data, streamlining usage analytics & cost attribution.\n\t\u2022\tDeveloped robust gRPC & REST APIs enabling 21% cloud cost savings via async non-blocking flows through optimized execution models, efficient data aggregation, tuned persistence layers and improved service scalibility under load.\n\t\u2022\tCollaborated cross-functionally with multiple teams on the entire product lifecycle, including discovery, feasibility, market research & technical architecture.\n\t\u2022\tMaintained a 100% resolution rate for P1/P2 incidents during on-call rotations & adhering to a 15-minute SLA, minimizing downtime & enhancing team efficiency through comprehensive technical documentation.",
+          "achievements": "Reduced form filling time by 80%",
+          "current": true,
+          "employmentType": {
+            "label": "Full-time",
+            "value": "ft"
+          },
+          "location": "Bengaluru",
+          "startDate": "2024-08-01"
+        },
+        {
+          "id": 1773942864688,
+          "company": "Finvolv",
+          "title": "SDE Intern",
+          "employmentType": {
+            "label": "Full-time",
+            "value": "ft"
+          },
+          "location": "Bengaluru",
+          "startDate": "2024-01-01",
+          "endDate": "2024-08-01",
+          "description": "Contributing to the Finvolv Core Platform Team and actively involved in building a highly configurable, domain-rich, low-code Loan Origination System (LOS) and Loan Management System (LMS), with end-to-end ownership of core modules including IAM and the Workspace Portal.\n\t\u2022\tDeveloped an advanced IAM system addressing complex financial hierarchies and intricate authentication and authorization scenarios, enabling seamless role-based access control while meeting strict compliance requirements.\n\t\u2022\tEngineered a custom API layer on top of Keycloak to satisfy rigorous security standards, implementing multi-level authorization flows, fraud-detection hooks, and compliance-ready audit trails, resulting in a 45% improvement in tokenization efficiency.\n\t\u2022\tBuilt high-performance REST APIs for credit evaluation systems and customer onboarding workflows, achieving 30% faster response times through caching, pagination, and message queuing, along with database indexing, connection pooling, and query optimization.\n\t\u2022\tDesigned and streamlined an event-driven integration framework between Loan Origination and Loan Management system modules using Kafka, improving reliability and efficiency of credit evaluation workflows.\n\t\u2022\tImplemented Multi-Factor Authentication (MFA) using Keycloak, significantly enhancing platform security while maintaining a smooth and user-friendly authentication experience."
+        },
+        {
+          "id": 1773942929304,
+          "company": "Irdeto",
+          "description": "Enhanced user engagement with content via ML techniques.\n\t\u2022\tDesigned & developed AI-driven content interaction enhancements by implementing real-time metadata enrichment & automated indexing, significantly improving discoverability & user engagement for OTT platforms.\n\t\u2022\tBuilt an advanced workflow integrating Computer Vision (CNN) & Natural Language Processing (BERT) to recognize objects & generate feature maps for image processing\u2014enabling model optimization through iterative training & increasing system accuracy over time.\n\t\u2022\tStrengthened content recommendation, personalization, real-time analytics & targeted advertising via intelligent content analysis & metadata tagging.\n\t\u2022\tOrchestrated real-time & on-the-fly event recognition & content tagging for dynamic video streams, enhancing metadata design & searchability by more than 50%.",
+          "startDate": "2023-06-01",
+          "endDate": "2023-08-01",
+          "title": "ML Intern",
+          "employmentType": {
+            "label": "Full-time",
+            "value": "ft"
+          },
+          "location": "Bengaluru"
+        }
+      ]
+    },
+    "education": {
+      "education": [
+        {
+          "id": 1,
+          "degree": {
+            "label": "Bachelors",
+            "value": "bs"
+          },
+          "field": "Computer Science",
+          "institution": "PES University",
+          "gpa": "8.36",
+          "startDate": "2020-08-01",
+          "endDate": "2024-08-01",
+          "coursework": "Data Science, Software Engineering, AI Engineer",
+          "activities": "5 semester x Scholarships \u2014 Ronin (Top 1%) on Coding Ninjas \u2014 500+ (GFG+Leetcode) \u2014 ACM member \u2014 GDSC member \u2014 1st in GAI & Code of Honour "
+        }
+      ]
+    },
+    "skills": {
+      "skillsList": [
+        "Python",
+        "React",
+        "TypeScript",
+        "OpenSearch",
+        "LangChain"
+      ],
+      "yoe": 1,
+      "moe": 7,
+      "skillsRaw": "Technical Skills: Python, Java, Go \u2014 Dev Frameworks like Django/Flask, Gin, SpringBoot, Streamlit, Rest, gRPC, GraphQL \u2014 AWS (EC2 , S3, SNS, SQS, Bedrock, Q, SageMaker, Lambda, RDS , DynamoDB) & GCP \u2014 ML Tools like LangChain, LlamaIndex, Haystack, OpenAI, Claude \u2014 Testing frameworks like JUnit, Jest & Mockito \u2014 ReactJS &VueJS \u2014 Apache Kafka & Druid \u2014 Redis, OAuth2.0 \u2014 SQL, MongoDB \u2014 PySpark, Databricks, PowerBI \u2014 ML Frameworks \u2014 Linux, Shell, Bitbucket , K8s/K9, Docker, Github Actions/Jenkins, Prometheus, Graphana \u2014 CodeQL & ESLint.\n",
+      "careerStart": "2024-08-01"
+    },
+    "certsProjects": {
+      "certs": [],
+      "projs": [
+        {
+          "id": 1773674863462
+        }
+      ]
+    },
+    "preferences": {
+      "pause": true,
+      "workMode": {
+        "label": "Hybrid",
+        "value": "hybrid"
+      },
+      "salaryMin": "1600000",
+      "empTypes": [
+        {
+          "label": "Full-time",
+          "value": "full-time"
+        }
+      ],
+      "autoCover": true,
+      "desiredRoles": "Assoc SW Engineer, SW Engineer, Data Engineering , AI Engineer, AI/ML Engineer, ML Engineer",
+      "industries": [
+        {
+          "label": "Tech",
+          "value": "tech"
+        },
+        {
+          "label": "SAAS",
+          "value": "saas"
+        }
+      ],
+      "salaryMax": "100000000000",
+      "notice": {
+        "label": "Immediate",
+        "value": "imm"
+      },
+      "cover": {
+        "label": "Formal",
+        "value": "formal"
+      }
+    },
+    "customFields": {
+      "personal": [],
+      "work": [],
+      "education": [],
+      "skills": [],
+      "certs": [],
+      "preferences": []
+    },
+    "userId": "default_user",
+    "updated_at": "2026-03-19T18:57:19.234777Z",
+    "fullText": "Parth Singh dearparthsingh@gmail.com Results-driven B.Tech CSE graduate with a proven track record in software development, design & architecture, and a passion for solving simple & complex problems. A strategic problem-solver with strong technical, interpersonal & communication skills, committed to delivering high-impact outcomes across Software Development, Cloud & AI. Bengaluru India Assoc SW Engineer at Snow Part of an agile Cloud Cost Optimization (FinOps) team, developing a platform to analyze, visualize & optimize cloud spend for Fortune 500 companies, achieving 30% average cost savings. The platform maximises business value by aligning cloud spending with business objectives. \u2022 Architected & developed scalable & resilient microservices for a Hybrid Cloud Cost Optimization platform, enabling cost management, auto-scaling, right-sizing of cloud resources & proactive cloud governance with enhanced visibility for 50k + customers. \u2022 E2E ownership of FinOps AI agent built using LangGraph, with multi-decision, multi-agent orchestration across RAG, Costs API, Cube, Waste Detection, ITAM Agents featuring parallel & serial workflows backed by redistributed memory manager & zero-trust guardrails for access & data security. \u2022 Shipped 10+ AI agents automating FinOps workflows\u2014from spend analysis & visualization to cost attribution, intelligent rightsizing, and actionable cost optimization \u2022 Trained ML models for AI recommendations, budgeting-forecasting, pattern recognition & anomaly detection in cloud spends optimising & achieving measurable savings. \u2022 Developed & enhanced resource level breakdown APIs, enabling granular cost by categorizing cloud expenses across line items, services, regions & usage patterns. \u2022 Build scalable cloud bill parsers for multiple cloud vendors & datarbricks to ingest, plot & store cost data in datalakehouse enabling cost management & optimization. \u2022 Designed high-performance ETL pipeline to transform, normalize & plot cloud billing data, streamlining usage analytics & cost attribution. \u2022 Developed robust gRPC & REST APIs enabling 21% cloud cost savings via async non-blocking flows through optimized execution models, efficient data aggregation, tuned persistence layers and improved service scalibility under load. \u2022 Collaborated cross-functionally with multiple teams on the entire product lifecycle, including discovery, feasibility, market research & technical architecture. \u2022 Maintained a 100% resolution rate for P1/P2 incidents during on-call rotations & adhering to a 15-minute SLA, minimizing downtime & enhancing team efficiency through comprehensive technical documentation. Reduced form filling time by 80% SDE Intern at Finvolv Contributing to the Finvolv Core Platform Team and actively involved in building a highly configurable, domain-rich, low-code Loan Origination System (LOS) and Loan Management System (LMS), with end-to-end ownership of core modules including IAM and the Workspace Portal. \u2022 Developed an advanced IAM system addressing complex financial hierarchies and intricate authentication and authorization scenarios, enabling seamless role-based access control while meeting strict compliance requirements. \u2022 Engineered a custom API layer on top of Keycloak to satisfy rigorous security standards, implementing multi-level authorization flows, fraud-detection hooks, and compliance-ready audit trails, resulting in a 45% improvement in tokenization efficiency. \u2022 Built high-performance REST APIs for credit evaluation systems and customer onboarding workflows, achieving 30% faster response times through caching, pagination, and message queuing, along with database indexing, connection pooling, and query optimization. \u2022 Designed and streamlined an event-driven integration framework between Loan Origination and Loan Management system modules using Kafka, improving reliability and efficiency of credit evaluation workflows. \u2022 Implemented Multi-Factor Authentication (MFA) using Keycloak, significantly enhancing platform security while maintaining a smooth and user-friendly authentication experience. ML Intern at Irdeto Enhanced user engagement with content via ML techniques. \u2022 Designed & developed AI-driven content interaction enhancements by implementing real-time metadata enrichment & automated indexing, significantly improving discoverability & user engagement for OTT platforms. \u2022 Built an advanced workflow integrating Computer Vision (CNN) & Natural Language Processing (BERT) to recognize objects & generate feature maps for image processing\u2014enabling model optimization through iterative training & increasing system accuracy over time. \u2022 Strengthened content recommendation, personalization, real-time analytics & targeted advertising via intelligent content analysis & metadata tagging. \u2022 Orchestrated real-time & on-the-fly event recognition & content tagging for dynamic video streams, enhancing metadata design & searchability by more than 50%. Bachelors in Computer Science at PES University GPA 8.36 Data Science, Software Engineering, AI Engineer Python, React, TypeScript, OpenSearch, LangChain Technical Skills: Python, Java, Go \u2014 Dev Frameworks like Django/Flask, Gin, SpringBoot, Streamlit, Rest, gRPC, GraphQL \u2014 AWS (EC2 , S3, SNS, SQS, Bedrock, Q, SageMaker, Lambda, RDS , DynamoDB) & GCP \u2014 ML Tools like LangChain, LlamaIndex, Haystack, OpenAI, Claude \u2014 Testing frameworks like JUnit, Jest & Mockito \u2014 ReactJS &VueJS \u2014 Apache Kafka & Druid \u2014 Redis, OAuth2.0 \u2014 SQL, MongoDB \u2014 PySpark, Databricks, PowerBI \u2014 ML Frameworks \u2014 Linux, Shell, Bitbucket , K8s/K9, Docker, Github Actions/Jenkins, Prometheus, Graphana \u2014 CodeQL & ESLint.",
+    "completeness": 82
+  }
+}

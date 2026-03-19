@@ -195,25 +195,72 @@ function PersonalInfo({ data, onChange, activeFields, onAdd, onRemove, customFie
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState('idle'); // 'idle', 'uploading', 'success'
   const fileInputRef = React.useRef(null);
+  useEffect(() => {
+    // Check if resume already exists on mount
+    axios.get(`${API}/resume/status?user_id=default_user`)
+      .then(r => {
+        if (r.data.exists) {
+          setFiles([{ name: 'resume.pdf', size: 0, type: 'application/pdf' }]);
+          setUploadStatus('success');
+          setUploadProgress(100);
+        }
+      })
+      .catch(err => console.error('Resume status check failed:', err));
+  }, []);
+
   const f = (k) => ({ 
     value: data[k] || '', 
     onChange: ({ detail }) => onChange(k, detail.value),
     disabled: !activeFields.includes(k)
   });
 
-  const handleFileDropzoneChange = ({ detail }) => {
-    setFiles(detail.value);
-    if (detail.value.length > 0) {
-      setUploadStatus('success');
-      setUploadProgress(100);
+  const handleFileDropzoneChange = async ({ detail }) => {
+    const selectedFiles = detail.value;
+    setFiles(selectedFiles);
+    if (selectedFiles.length > 0) {
+      setUploadStatus('uploading');
+      setUploadProgress(30);
+      
+      const formData = new FormData();
+      formData.append('file', selectedFiles[0]);
+      formData.append('userId', 'default_user');
+
+      try {
+        await axios.post(`${API}/resume/upload`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          onUploadProgress: (progressEvent) => {
+            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setUploadProgress(progress);
+          }
+        });
+        setUploadStatus('success');
+      } catch (err) {
+        setUploadStatus('idle');
+        console.error('Upload failed:', err);
+      }
     }
   };
-  const handleNativeInputChange = (e) => {
+
+  const handleNativeInputChange = async (e) => {
     if (e.target.files && e.target.files.length > 0) {
-      setFiles(Array.from(e.target.files));
-      setUploadStatus('success');
-      setUploadProgress(100);
-      // Reset input value so the same file can be uploaded again
+      const selectedFile = e.target.files[0];
+      setFiles([selectedFile]);
+      setUploadStatus('uploading');
+      
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('userId', 'default_user');
+
+      try {
+        await axios.post(`${API}/resume/upload`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        setUploadStatus('success');
+        setUploadProgress(100);
+      } catch (err) {
+        setUploadStatus('idle');
+        console.error('Upload failed:', err);
+      }
       e.target.value = '';
     }
   };

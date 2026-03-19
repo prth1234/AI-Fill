@@ -6,7 +6,9 @@ import asyncio
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 
-from fastapi import FastAPI, HTTPException, Body, Path, Query, Response
+import boto3
+from botocore.client import Config
+from fastapi import FastAPI, HTTPException, Body, Path, Query, Response, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import httpx
@@ -24,6 +26,22 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
+
+# ─── S3 / MinIO Configuration ────────────────────────────────────────────────
+S3_ENDPOINT = os.getenv("S3_ENDPOINT", "http://localhost:9000")
+S3_ACCESS_KEY = os.getenv("S3_ACCESS_KEY", "minioadmin")
+S3_SECRET_KEY = os.getenv("S3_SECRET_KEY", "minioadmin")
+S3_BUCKET = os.getenv("S3_BUCKET", "resumes")
+
+# Use 'local-storage' if no S3 is configured
+s3_client = boto3.client(
+    "s3",
+    endpoint_url=S3_ENDPOINT,
+    aws_access_key_id=S3_ACCESS_KEY,
+    aws_secret_access_key=S3_SECRET_KEY,
+    config=Config(signature_version="s3v4"),
+    region_name="us-east-1"
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -44,9 +62,30 @@ os_client = OpenSearch(
 PROFILE_INDEX = "autofill_profiles"
 JOBS_INDEX = "autofill_jobs"
 
-# ─── In-memory fallback store ──────────────────────────────────────────────────
-# Mirroring global._profileStore in JS
-_profile_store = {}
+# ─── In-memory fallback store with File persistence ────────────────────────────
+STORAGE_DIR = os.path.join(os.path.dirname(__file__), "local_storage")
+PROFILES_FILE = os.path.join(STORAGE_DIR, "profiles.json")
+UPLOADS_DIR = os.path.join(STORAGE_DIR, "uploads")
+
+os.makedirs(UPLOADS_DIR, exist_ok=True)
+
+def load_local_profiles():
+    if os.path.exists(PROFILES_FILE):
+        try:
+            with open(PROFILES_FILE, "r") as f:
+                return json.load(f)
+        except:
+            return {}
+    return {}
+
+def save_local_profiles(store):
+    try:
+        with open(PROFILES_FILE, "w") as f:
+            json.dump(store, f, indent=2)
+    except:
+        pass
+
+_profile_store = load_local_profiles()
 # Mirroring sessions Map in JS
 _sessions = {}
 
@@ -225,6 +264,16 @@ async def startup_event():
             }
         }
     ]
+    # Ensure S3 Bucket exists
+    try:
+        s3_client.head_bucket(Bucket=S3_BUCKET)
+    except:
+        try:
+            s3_client.create_bucket(Bucket=S3_BUCKET)
+            print(f"✅ Created S3 bucket: {S3_BUCKET}")
+        except Exception as e:
+            print(f"⚠️ Could not ensure S3 bucket {S3_BUCKET}: {e}")
+
     for idx in indexes:
         try:
             if not os_client.indices.exists(index=idx["index"]):
@@ -306,6 +355,7 @@ async def create_profile(body: Dict[str, Any] = Body(...)):
     
     saved = os_upsert(user_id, profile)
     _profile_store[user_id] = profile
+    save_local_profiles(_profile_store)
     
     return {
         "success": True, 
@@ -334,6 +384,7 @@ async def update_profile(user_id: str, body: Dict[str, Any] = Body(...)):
     
     saved = os_upsert(user_id, updated)
     _profile_store[user_id] = updated
+    save_local_profiles(_profile_store)
     
     return {
         "success": True, 
@@ -347,6 +398,7 @@ async def delete_profile(user_id: str):
     os_deleted = os_delete(user_id)
     if user_id in _profile_store:
         _profile_store.pop(user_id, None)
+        save_local_profiles(_profile_store)
     return {"success": True, "userId": user_id, "opensearch": os_deleted}
 
 # ─── LLM Agent ────────────────────────────────────────────────────────────────
@@ -440,6 +492,67 @@ async def agent_ask(req: AskRequest):
         "hasProfile": bool(profile),
         "userId": user_id
     }
+
+# ─── Blob Storage Endpoints ───────────────────────────────────────────────────
+@app.post("/api/resume/upload")
+async def upload_resume(file: UploadFile = File(...), user_id: str = "default_user"):
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+    
+    file_key = f"{user_id}/resume.pdf"
+    content = await file.read()
+    
+    # Try S3 first, then Fallback to local disk
+    try:
+        s3_client.put_object(
+            Bucket=S3_BUCKET,
+            Key=file_key,
+            Body=content,
+            ContentType="application/pdf"
+        )
+        return {"success": True, "storage": "s3", "key": file_key}
+    except Exception as e:
+        print(f"⚠️ S3 upload failed, using local disk fallback: {e}")
+        # Local file fallback
+        user_dir = os.path.join(UPLOADS_DIR, user_id)
+        os.makedirs(user_dir, exist_ok=True)
+        local_path = os.path.join(user_dir, "resume.pdf")
+        with open(local_path, "wb") as f:
+            f.write(content)
+        return {"success": True, "storage": "local", "path": local_path}
+
+@app.get("/api/resume/download")
+async def download_resume(user_id: str = "default_user"):
+    file_key = f"{user_id}/resume.pdf"
+    
+    # 1. Try S3
+    try:
+        res = s3_client.get_object(Bucket=S3_BUCKET, Key=file_key)
+        return Response(content=res["Body"].read(), media_type="application/pdf")
+    except:
+        # 2. Try Local Fallback
+        local_path = os.path.join(UPLOADS_DIR, user_id, "resume.pdf")
+        if os.path.exists(local_path):
+            with open(local_path, "rb") as f:
+                return Response(content=f.read(), media_type="application/pdf")
+    
+    raise HTTPException(status_code=404, detail="Resume not found.")
+
+@app.get("/api/resume/status")
+async def resume_status(user_id: str = "default_user"):
+    file_key = f"{user_id}/resume.pdf"
+    
+    # Check S3
+    try:
+        s3_client.head_object(Bucket=S3_BUCKET, Key=file_key)
+        return {"exists": True, "storage": "s3"}
+    except:
+        # Check Local
+        local_path = os.path.join(UPLOADS_DIR, user_id, "resume.pdf")
+        if os.path.exists(local_path):
+            return {"exists": True, "storage": "local"}
+        
+    return {"exists": False}
 
 # ─── AutoFill Management ──────────────────────────────────────────────────────
 @app.post("/api/autofill/start")

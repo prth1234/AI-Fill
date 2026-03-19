@@ -5,4 +5,5 @@ httpx
 opensearch-py
 python-dotenv
 python-multipart
-uuid
+boto3
+openai
