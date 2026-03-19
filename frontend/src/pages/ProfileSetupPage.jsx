@@ -194,18 +194,21 @@ function PersonalInfo({ data, onChange, activeFields, onAdd, onRemove, customFie
   const [files, setFiles] = useState([]);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState('idle'); // 'idle', 'uploading', 'success'
+  const [checkingResume, setCheckingResume] = useState(true);
   const fileInputRef = React.useRef(null);
   useEffect(() => {
     // Check if resume already exists on mount
+    setCheckingResume(true);
     axios.get(`${API}/resume/status?user_id=default_user`)
       .then(r => {
         if (r.data.exists) {
-          setFiles([{ name: 'resume.pdf', size: 0, type: 'application/pdf' }]);
+          setFiles([{ name: r.data.filename, size: 0, type: 'application/pdf' }]);
           setUploadStatus('success');
           setUploadProgress(100);
         }
       })
-      .catch(err => console.error('Resume status check failed:', err));
+      .catch(err => console.error('Resume status check failed:', err))
+      .finally(() => setCheckingResume(false));
   }, []);
 
   const f = (k) => ({ 
@@ -226,13 +229,14 @@ function PersonalInfo({ data, onChange, activeFields, onAdd, onRemove, customFie
       formData.append('userId', 'default_user');
 
       try {
-        await axios.post(`${API}/resume/upload`, formData, {
+        const { data: uploadData } = await axios.post(`${API}/resume/upload`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
           onUploadProgress: (progressEvent) => {
             const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
             setUploadProgress(progress);
           }
         });
+        setFiles([{ name: uploadData.filename, size: 0, type: 'application/pdf' }]);
         setUploadStatus('success');
       } catch (err) {
         setUploadStatus('idle');
@@ -252,9 +256,10 @@ function PersonalInfo({ data, onChange, activeFields, onAdd, onRemove, customFie
       formData.append('userId', 'default_user');
 
       try {
-        await axios.post(`${API}/resume/upload`, formData, {
+        const { data: uploadData } = await axios.post(`${API}/resume/upload`, formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
+        setFiles([{ name: uploadData.filename, size: 0, type: 'application/pdf' }]);
         setUploadStatus('success');
         setUploadProgress(100);
       } catch (err) {
@@ -273,12 +278,19 @@ function PersonalInfo({ data, onChange, activeFields, onAdd, onRemove, customFie
             <Alert type="info">Upload your resume to automatically extract and populate these fields using AI.</Alert>
             <DismissibleField id="resume_upload" activeFields={activeFields} onAdd={onAdd}>
               <FormField label="Upload Resume (PDF, DOCX)">
-                <div onClick={() => activeFields.includes('resume_upload') && fileInputRef.current?.click()} style={{ cursor: activeFields.includes('resume_upload') ? 'pointer' : 'default' }}>
-                  <FileDropzone disabled={!activeFields.includes('resume_upload')} onChange={handleFileDropzoneChange} value={files}>
-                    <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                      <strong>Drop your resume here (Click or Drag)</strong>
-                      <div style={{ color: '#6b7280', fontSize: '13px', marginTop: '4px' }}>PDF or DOCX documents</div>
-                    </div>
+                <div onClick={() => !checkingResume && activeFields.includes('resume_upload') && fileInputRef.current?.click()} style={{ cursor: (!checkingResume && activeFields.includes('resume_upload')) ? 'pointer' : 'default' }}>
+                  <FileDropzone disabled={checkingResume || !activeFields.includes('resume_upload')} onChange={handleFileDropzoneChange} value={files}>
+                    {checkingResume ? (
+                      <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                        <Spinner size="large" />
+                        <Box margin={{ top: 's' }} color="text-body-secondary">Checking resume vault…</Box>
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                        <strong>Drop your resume here (Click or Drag)</strong>
+                        <div style={{ color: '#6b7280', fontSize: '13px', marginTop: '4px' }}>PDF or DOCX documents</div>
+                      </div>
+                    )}
                   </FileDropzone>
                 </div>
                 <input type="file" ref={fileInputRef} hidden accept=".pdf,.docx" onChange={handleNativeInputChange} />
@@ -303,7 +315,7 @@ function PersonalInfo({ data, onChange, activeFields, onAdd, onRemove, customFie
                       </div>
                       {uploadStatus === 'success' && (
                         <StatusIndicator type="success">
-                          File Uploaded successfully. 
+                          File stored as: <strong>{files[0]?.name}</strong>
                         </StatusIndicator>
                       )}
                   </Box>

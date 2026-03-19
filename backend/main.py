@@ -21,19 +21,25 @@ app = FastAPI(title="AI AutoFill Python Backend")
 
 # ─── Configuration ───────────────────────────────────────────────────────────
 PORT = int(os.getenv("PORT", 4000))
+
+# DB_TYPE: "opensearch" or "local"
+DB_TYPE = os.getenv("DB_TYPE", "local")
 OPENSEARCH_URL = os.getenv("OPENSEARCH_URL", "http://localhost:9200")
+
+# STORAGE_TYPE: "s3" or "local"
+STORAGE_TYPE = os.getenv("STORAGE_TYPE", "local")
+S3_ENDPOINT = os.getenv("S3_ENDPOINT", "http://localhost:9000")
+S3_ACCESS_KEY = os.getenv("S3_ACCESS_KEY", "minioadmin")
+S3_SECRET_KEY = os.getenv("S3_SECRET_KEY", "minioadmin")
+S3_BUCKET = os.getenv("S3_BUCKET", "resumes")
+
+# Ollama local LLM config
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
 
 # ─── S3 / MinIO Configuration ────────────────────────────────────────────────
-S3_ENDPOINT = os.getenv("S3_ENDPOINT", "http://localhost:9000")
-S3_ACCESS_KEY = os.getenv("S3_ACCESS_KEY", "minioadmin")
-S3_SECRET_KEY = os.getenv("S3_SECRET_KEY", "minioadmin")
-S3_BUCKET = os.getenv("S3_BUCKET", "resumes")
-
-# Use 'local-storage' if no S3 is configured
 s3_client = boto3.client(
     "s3",
     endpoint_url=S3_ENDPOINT,
@@ -264,23 +270,25 @@ async def startup_event():
             }
         }
     ]
-    # Ensure S3 Bucket exists
-    try:
-        s3_client.head_bucket(Bucket=S3_BUCKET)
-    except:
-        try:
-            s3_client.create_bucket(Bucket=S3_BUCKET)
-            print(f"✅ Created S3 bucket: {S3_BUCKET}")
-        except Exception as e:
-            print(f"⚠️ Could not ensure S3 bucket {S3_BUCKET}: {e}")
+    if DB_TYPE == "opensearch":
+        for idx in indexes:
+            try:
+                if not os_client.indices.exists(index=idx["index"]):
+                    os_client.indices.create(index=idx["index"], body=idx["body"])
+                    print(f"✅ Created index: {idx['index']}")
+            except Exception as e:
+                print(f"⚠️ Could not check/create index {idx['index']}: {e}")
 
-    for idx in indexes:
+    if STORAGE_TYPE == "s3":
+        # Ensure S3 Bucket exists
         try:
-            if not os_client.indices.exists(index=idx["index"]):
-                os_client.indices.create(index=idx["index"], body=idx["body"])
-                print(f"✅ Created index: {idx['index']}")
-        except Exception as e:
-            print(f"⚠️  Could not check/create index {idx['index']}: {e}")
+            s3_client.head_bucket(Bucket=S3_BUCKET)
+        except:
+            try:
+                s3_client.create_bucket(Bucket=S3_BUCKET)
+                print(f"✅ Created S3 bucket: {S3_BUCKET}")
+            except Exception as e:
+                print(f"⚠️ Could not connect to S3 at {S3_ENDPOINT}: {e}")
 
 # ─── Health ───────────────────────────────────────────────────────────────────
 @app.get("/api/health")
@@ -501,56 +509,94 @@ async def upload_resume(file: UploadFile = File(...), user_id: str = "default_us
     
     file_key = f"{user_id}/resume.pdf"
     content = await file.read()
+    orig_name = os.path.splitext(file.filename)[0]
     
-    # Try S3 first, then Fallback to local disk
-    try:
-        s3_client.put_object(
-            Bucket=S3_BUCKET,
-            Key=file_key,
-            Body=content,
-            ContentType="application/pdf"
-        )
-        return {"success": True, "storage": "s3", "key": file_key}
-    except Exception as e:
-        print(f"⚠️ S3 upload failed, using local disk fallback: {e}")
-        # Local file fallback
+    # 1. Determine version by counting existing files
+    version = 1
+    if STORAGE_TYPE == "local":
+        user_dir = os.path.join(UPLOADS_DIR, user_id)
+        if os.path.exists(user_dir):
+            version = len([f for f in os.listdir(user_dir) if f.endswith(".pdf")]) + 1
+    else:
+        try:
+            resp = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix=f"{user_id}/")
+            version = resp.get("KeyCount", 0) + 1
+        except: pass
+
+    new_filename = f"{orig_name}_v{version}.pdf"
+    file_key = f"{user_id}/{new_filename}"
+    
+    # Update local storage with latest key pointer (optional but good for 'download')
+    # We'll save the 'latest' pointer in the profiles or handled by status
+    
+    if STORAGE_TYPE == "local":
         user_dir = os.path.join(UPLOADS_DIR, user_id)
         os.makedirs(user_dir, exist_ok=True)
-        local_path = os.path.join(user_dir, "resume.pdf")
+        local_path = os.path.join(user_dir, new_filename)
         with open(local_path, "wb") as f:
             f.write(content)
-        return {"success": True, "storage": "local", "path": local_path}
+        return {"success": True, "storage": "local", "filename": new_filename, "version": version}
+    else:
+        try:
+            s3_client.put_object(
+                Bucket=S3_BUCKET,
+                Key=file_key,
+                Body=content,
+                ContentType="application/pdf"
+            )
+            return {"success": True, "storage": "s3", "key": file_key, "filename": new_filename, "version": version}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"S3 upload failed: {e}")
 
 @app.get("/api/resume/download")
-async def download_resume(user_id: str = "default_user"):
-    file_key = f"{user_id}/resume.pdf"
+async def download_resume(user_id: str = "default_user", filename: Optional[str] = None):
+    # If no filename provided, get the latest one
+    if not filename:
+        status = await resume_status(user_id)
+        if not status.get("exists"):
+            raise HTTPException(status_code=404, detail="Resume not found.")
+        filename = status["filename"]
+
+    file_key = f"{user_id}/{filename}"
     
-    # 1. Try S3
-    try:
-        res = s3_client.get_object(Bucket=S3_BUCKET, Key=file_key)
-        return Response(content=res["Body"].read(), media_type="application/pdf")
-    except:
-        # 2. Try Local Fallback
-        local_path = os.path.join(UPLOADS_DIR, user_id, "resume.pdf")
+    if STORAGE_TYPE == "local":
+        local_path = os.path.join(UPLOADS_DIR, user_id, filename)
         if os.path.exists(local_path):
             with open(local_path, "rb") as f:
                 return Response(content=f.read(), media_type="application/pdf")
+    else:
+        try:
+            res = s3_client.get_object(Bucket=S3_BUCKET, Key=file_key)
+            return Response(content=res["Body"].read(), media_type="application/pdf")
+        except:
+            pass
     
-    raise HTTPException(status_code=404, detail="Resume not found.")
+    raise HTTPException(status_code=404, detail=f"File {filename} not found.")
 
 @app.get("/api/resume/status")
 async def resume_status(user_id: str = "default_user"):
-    file_key = f"{user_id}/resume.pdf"
+    # Return the latest version info
+    latest_file = None
     
-    # Check S3
-    try:
-        s3_client.head_object(Bucket=S3_BUCKET, Key=file_key)
-        return {"exists": True, "storage": "s3"}
-    except:
-        # Check Local
-        local_path = os.path.join(UPLOADS_DIR, user_id, "resume.pdf")
-        if os.path.exists(local_path):
-            return {"exists": True, "storage": "local"}
+    if STORAGE_TYPE == "local":
+        user_dir = os.path.join(UPLOADS_DIR, user_id)
+        if os.path.exists(user_dir):
+            files = [f for f in os.listdir(user_dir) if f.endswith(".pdf")]
+            if files:
+                # Sort by version number suffix if possible, or use stats
+                files.sort(key=lambda x: os.path.getmtime(os.path.join(user_dir, x)), reverse=True)
+                latest_file = files[0]
+                return {"exists": True, "storage": "local", "filename": latest_file}
+    else:
+        try:
+            resp = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix=f"{user_id}/")
+            if resp.get("Contents"):
+                # Sort by last modified
+                sorted_contents = sorted(resp["Contents"], key=lambda x: x["LastModified"], reverse=True)
+                latest_file = sorted_contents[0]["Key"].split("/")[-1]
+                return {"exists": True, "storage": "s3", "filename": latest_file}
+        except:
+            pass
         
     return {"exists": False}
 
