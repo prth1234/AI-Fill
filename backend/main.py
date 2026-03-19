@@ -22,6 +22,8 @@ PORT = int(os.getenv("PORT", 4000))
 OPENSEARCH_URL = os.getenv("OPENSEARCH_URL", "http://localhost:9200")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
 
 app.add_middleware(
     CORSMiddleware,
@@ -244,15 +246,21 @@ async def health_check():
     
     try:
         async with httpx.AsyncClient() as client:
-            r = await client.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=2.0)
+            r = await client.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=1.0)
             ollama_ok = r.status_code == 200
     except:
         pass
+
+    openai_ok = bool(OPENAI_API_KEY)
         
     return {
         "status": "ok",
         "time": datetime.utcnow().isoformat() + "Z",
-        "services": {"opensearch": opensearch_ok, "ollama": ollama_ok}
+        "services": {
+            "opensearch": opensearch_ok, 
+            "ollama": ollama_ok,
+            "openai": openai_ok
+        }
     }
 
 # ─── Stats ────────────────────────────────────────────────────────────────────
@@ -364,6 +372,7 @@ async def agent_ask(req: AskRequest):
     model_used = OLLAMA_MODEL
     ollama_available = True
     
+    # 1. Try Ollama (Local)
     try:
         async with httpx.AsyncClient() as client:
             ollama_res = await client.post(
@@ -379,20 +388,55 @@ async def agent_ask(req: AskRequest):
                 },
                 timeout=60.0
             )
-            data = ollama_res.json()
-            answer = data.get("message", {}).get("content", data.get("response", "No response from LLM."))
+            if ollama_res.status_code == 200:
+                data = ollama_res.json()
+                answer = data.get("message", {}).get("content", data.get("response", "No response from LLM."))
+                model_used = f"ollama:{OLLAMA_MODEL}"
+            else:
+                raise Exception(f"Ollama returned {ollama_res.status_code}")
     except Exception as e:
         ollama_available = False
+        
+        # 2. Try OpenAI (Fallback)
+        if OPENAI_API_KEY:
+            try:
+                async with httpx.AsyncClient() as client:
+                    oa_res = await client.post(
+                        "https://api.openai.com/v1/chat/completions",
+                        headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
+                        json={
+                            "model": OPENAI_MODEL,
+                            "messages": [
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": req.question}
+                            ],
+                            "temperature": 0.3
+                        },
+                        timeout=30.0
+                    )
+                    if oa_res.status_code == 200:
+                        oa_data = oa_res.json()
+                        answer = oa_data["choices"][0]["message"]["content"]
+                        model_used = f"openai:{OPENAI_MODEL}"
+                    else:
+                        raise Exception(f"OpenAI returned {oa_res.status_code}")
+            except Exception as oa_e:
+                print(f"OpenAI fallback failed: {oa_e}")
+                pass
+
+    # 3. Final Fallback (Summary template)
+    if not answer:
         if profile_context:
-            answer = f"⚠️ The local LLM (Ollama) is not running. Here is a summary of what I know from your profile:\n\n{profile_context}\n\nTo enable AI-powered answers, please start Ollama: `ollama serve` and pull a model: `ollama pull llama3.2`"
+            answer = f"⚠️ Both local LLM (Ollama) and OpenAI fallback are unavailable.\n\nHere is a summary from your profile:\n\n{profile_context}\n\nTo fix this:\n1. Start Ollama: `ollama serve` and `ollama pull {OLLAMA_MODEL}`\n2. OR provide an `OPENAI_API_KEY` in the `.env` file."
         else:
-            answer = "⚠️ The local LLM (Ollama) is offline and no profile was found. Please set up your profile and start Ollama."
+            answer = "⚠️ No AI service is online and no profile was found. Please set up your profile or start an LLM service (Ollama or OpenAI)."
         model_used = "fallback"
 
     return {
         "answer": answer,
         "model": model_used,
         "ollamaAvailable": ollama_available,
+        "openaiAvailable": bool(OPENAI_API_KEY),
         "hasProfile": bool(profile),
         "userId": user_id
     }
