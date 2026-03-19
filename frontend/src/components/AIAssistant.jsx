@@ -34,11 +34,6 @@ function ChatMessage({ msg }) {
         {msg.typing ? <TypingDots /> : (
           <span style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{msg.content}</span>
         )}
-        {!isUser && msg.model && !msg.typing && (
-          <div className="ai-model-tag">
-            {msg.ollamaAvailable ? `🤖 ${msg.model}` : '📋 Fallback mode'}
-          </div>
-        )}
       </div>
     </div>
   );
@@ -212,9 +207,6 @@ export default function AIAssistant() {
             </button>
           </div>
 
-          <div className="ai-footer-note">
-            Powered by Ollama · llama3.2 · running locally
-          </div>
         </div>
       )}
     </>

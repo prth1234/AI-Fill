@@ -1,0 +1,5 @@
+$kind: http-request
+name: Post profile
+url: http://localhost:4000/api/profile
+method: POST
+order: 1773942424388

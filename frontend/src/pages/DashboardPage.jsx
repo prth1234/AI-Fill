@@ -23,20 +23,6 @@ function StatBox({ label, value, description }) {
   );
 }
 
-function ServiceChip({ name, ok }) {
-  return (
-    <div style={{
-      display: 'inline-flex', alignItems: 'center', gap: '6px',
-      padding: '5px 12px', borderRadius: '9999px', fontSize: '12.5px', fontWeight: 500,
-      border: `1px solid ${ok ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.3)'}`,
-      background: ok ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)',
-      color: ok ? '#10b981' : '#f59e0b',
-    }}>
-      <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'currentColor', display: 'inline-block', boxShadow: '0 0 6px currentColor' }} />
-      {name}: {ok ? 'Online' : 'Offline'}
-    </div>
-  );
-}
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -76,13 +62,6 @@ export default function DashboardPage() {
     >
       <SpaceBetween size="l">
 
-        {/* Service Health Row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <Box variant="small" color="text-status-inactive">Services:</Box>
-          <ServiceChip name="Backend API" ok={backendOk === true} />
-          <ServiceChip name="OpenSearch" ok={health?.services?.opensearch === true} />
-          <ServiceChip name="Ollama LLM" ok={health?.services?.ollama === true} />
-        </div>
 
         {/* Stats */}
         <ColumnLayout columns={4}>
@@ -133,7 +112,7 @@ export default function DashboardPage() {
             },
             {
               title: '3.  Ask the AI Agent',
-              desc: 'Use the floating AI chat button (bottom-right ✦) to ask questions about your profile. The LLM reads your profile from OpenSearch and answers intelligently.',
+              desc: 'Use the floating AI chat button (bottom-right ✦) to ask questions about your profile. The AI learns from your profile to answer intelligently.',
               cta: 'View History',
               action: () => navigate('/jobs'),
             },
@@ -145,11 +124,11 @@ export default function DashboardPage() {
           <ColumnLayout columns={3} variant="text-grid">
             <div>
               <Box variant="h3">AI Context Layer</Box>
-              <Box variant="p">Your profile is stored in OpenSearch. When filling a form or answering a question, the LLM retrieves your full structured profile context and generates accurate, grounded answers.</Box>
+              <Box variant="p">Your profile is stored securely. When filling a form or answering a question, the AI retrieves your structured profile context and generates accurate, personalized answers.</Box>
             </div>
             <div>
               <Box variant="h3">Playwright Automation</Box>
-              <Box variant="p">Playwright navigates the job application portal, identifies form fields, sends them to the LLM, and types the AI-generated answers — exactly like a human would.</Box>
+              <Box variant="p">The automation engine navigates job portals, identifies form fields, and applies your profile information — exactly like a human would.</Box>
             </div>
             <div>
               <Box variant="h3">Human-in-the-Loop</Box>
