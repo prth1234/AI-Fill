@@ -18,6 +18,7 @@ import ProfileSetupPage from './pages/ProfileSetupPage';
 import AutoFillPage from './pages/AutoFillPage';
 import JobsPage from './pages/JobsPage';
 import CustomProfilePage from './pages/CustomProfilePage';
+import AIAssistant from './components/AIAssistant';
 
 const NAV_ITEMS = [
   { type: 'link', text: <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Icon name="menu" /> <span>Dashboard</span></span>, href: '/dashboard' },
@@ -249,6 +250,8 @@ function AppShell() {
         }
         toolsHide
       />
+      {/* Global AI Assistant — floats on all pages */}
+      <AIAssistant />
     </>
   );
 }

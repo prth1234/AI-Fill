@@ -1,0 +1,10 @@
+$kind: http-request
+url: http://localhost:4000/api/agent/ask
+method: POST
+body:
+  type: json
+  content: |-
+    {
+        "question":"Who r u?"
+    }
+order: 4258654525098254
