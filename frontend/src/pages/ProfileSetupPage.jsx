@@ -1319,11 +1319,13 @@ export default function ProfileSetupPage() {
 
       <style>{`
         /* Supercharge the Cloudscape Wizard Step Headings to match Launch layout */
-        h2[class*="awsui_title_"], h2[class*="awsui_heading_"] {
+        .awsui-wizard h1, 
+        [class*="awsui_wizard"] h1, 
+        h2 {
           font-size: 36px !important;
           font-weight: 800 !important;
           letter-spacing: -0.02em !important;
-          margin-bottom: 8px !important;
+          margin-bottom: 2px !important;
         }
       `}</style>
     </>
