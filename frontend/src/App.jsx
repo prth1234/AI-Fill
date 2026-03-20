@@ -227,50 +227,53 @@ function AppShell() {
         onToggleGenie={() => setToolsOpen(!toolsOpen)}
         genieOpen={toolsOpen}
       />
-      <AppLayout
-        headerSelector="#top-nav"
-        navigationOpen={navOpen}
-        onNavigationChange={({ detail }) => setNavOpen(detail.open)}
-        navigation={
-          <SideNavigation
-            activeHref={location.pathname}
-            header={{ text: 'AI AutoFill Agent', href: '/dashboard' }}
-            onFollow={e => { e.preventDefault(); navigate(e.detail.href); }}
-            items={NAV_ITEMS}
-          />
-        }
-        breadcrumbs={
-          <BreadcrumbGroup
-            items={crumbs}
-            onFollow={e => { e.preventDefault(); navigate(e.detail.href); }}
-          />
-        }
-        content={
-          <div className="main-scroll-content">
-            {isLoading ? (
-              <Box padding="xxl" textAlign="center">
-                <SpaceBetween size="m">
-                  <Spinner size="large" />
-                  <Box variant="h3">Preparing your workspace...</Box>
-                </SpaceBetween>
-              </Box>
-            ) : (
-              <Routes>
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/profile/*" element={<ProfileSetupPage />} />
-                <Route path="/autofill" element={<AutoFillPage />} />
-                <Route path="/jobs" element={<JobsPage />} />
-                <Route path="/custom" element={<CustomProfilePage />} />
-                <Route path="*" element={<DashboardPage />} />
-              </Routes>
-            )}
-          </div>
-        }
-        toolsOpen={toolsOpen}
-        onToolsChange={({ detail }) => setToolsOpen(detail.open)}
-        tools={<AIAssistant onClose={() => setToolsOpen(false)} />}
-        toolsWidth={480}
-      />
+      <div style={{ position: 'absolute', top: 60, bottom: 0, left: 0, right: 0 }}>
+        <AppLayout
+          disableBodyScroll={true}
+          headerSelector="#top-nav"
+          navigationOpen={navOpen}
+          onNavigationChange={({ detail }) => setNavOpen(detail.open)}
+          navigation={
+            <SideNavigation
+              activeHref={location.pathname}
+              header={{ text: 'AI AutoFill Agent', href: '/dashboard' }}
+              onFollow={e => { e.preventDefault(); navigate(e.detail.href); }}
+              items={NAV_ITEMS}
+            />
+          }
+          breadcrumbs={
+            <BreadcrumbGroup
+              items={crumbs}
+              onFollow={e => { e.preventDefault(); navigate(e.detail.href); }}
+            />
+          }
+          content={
+            <div className="main-scroll-content">
+              {isLoading ? (
+                <Box padding="xxl" textAlign="center">
+                  <SpaceBetween size="m">
+                    <Spinner size="large" />
+                    <Box variant="h3">Preparing your workspace...</Box>
+                  </SpaceBetween>
+                </Box>
+              ) : (
+                <Routes>
+                  <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/profile/*" element={<ProfileSetupPage />} />
+                  <Route path="/autofill" element={<AutoFillPage />} />
+                  <Route path="/jobs" element={<JobsPage />} />
+                  <Route path="/custom" element={<CustomProfilePage />} />
+                  <Route path="*" element={<DashboardPage />} />
+                </Routes>
+              )}
+            </div>
+          }
+          toolsOpen={toolsOpen}
+          onToolsChange={({ detail }) => setToolsOpen(detail.open)}
+          tools={<AIAssistant onClose={() => setToolsOpen(false)} />}
+          toolsWidth={480}
+        />
+      </div>
     </>
   );
 }

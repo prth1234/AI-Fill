@@ -159,31 +159,14 @@ export default function AIAssistant({ onClose }) {
 
   return (
     <div style={{
-      position: 'fixed',
-      top: 60,
-      bottom: 0,
-      right: 0,
-      width: 480,
-      zIndex: 1000,
       display: 'flex',
       flexDirection: 'column',
-      background: 'var(--color-background-layout-panel-content)',
-      borderLeft: '1px solid var(--color-border-container-divider)'
+      height: '100%',
+      background: 'var(--color-background-layout-panel-content)'
     }}>
       {/* Header */}
-      <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--color-border-container-divider)' }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>Genie Assistant</h2>
-          <span style={{ fontSize: '12px', color: 'var(--color-text-body-secondary)' }}>Query and interact with your profile context.</span>
-        </div>
-        {onClose && (
-          <button 
-            onClick={onClose}
-            style={{ padding: '4px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--color-text-body-secondary)' }}
-          >
-            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-          </button>
-        )}
+      <div style={{ flexShrink: 0, padding: '16px 20px', borderBottom: '1px solid var(--color-border-container-divider)' }}>
+        <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>Genie Assistant</h1>
       </div>
 
       {/* Messages Area - Native independent scroll */}
