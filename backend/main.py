@@ -150,8 +150,39 @@ def compute_completeness(profile: Dict[str, Any]) -> int:
 def build_profile_context(profile: Dict[str, Any]) -> str:
     p = profile.get("personal", {})
     work_exps_list = profile.get("workExp", {}).get("experiences", [])
+    
+    # Calculate Total Experience by summing durations
+    total_months = 0
+    now = datetime.utcnow()
+    
+    for e in work_exps_list:
+        try:
+            start_str = e.get("startDate")
+            if not start_str: continue
+            
+            start_date = datetime.strptime(start_str, "%Y-%m-%d")
+            
+            if e.get("current"):
+                end_date = now
+            else:
+                end_str = e.get("endDate")
+                if not end_str: continue
+                end_date = datetime.strptime(end_str, "%Y-%m-%d")
+            
+            # Approximate months
+            diff = (end_date.year - start_date.year) * 12 + (end_date.month - start_date.month)
+            if diff > 0:
+                total_months += diff
+        except:
+            pass
+            
+    yoe_calc = total_months // 12
+    moe_calc = total_months % 12
+    
     work_exps = "\n".join([
-        f"- {e.get('title', 'Role')} at {e.get('company', 'Company')} ({e.get('startDate', '?')} – {'Present' if e.get('current') else (e.get('endDate', '?'))}): {e.get('description', '')} Achievements: {e.get('achievements', '')}"
+        f"- {e.get('title', 'Role')} at {e.get('company', 'Company')} ({e.get('startDate', '?')} to {'Present' if e.get('current') else (e.get('endDate', '?'))}):\n"
+        f"  Role Description/Responsibilities: {e.get('description', 'No details provided.')}\n"
+        f"  Key Achievements: {e.get('achievements', 'None listed.')}"
         for e in work_exps_list
     ])
     
@@ -173,7 +204,7 @@ def build_profile_context(profile: Dict[str, Any]) -> str:
     prefs = profile.get("preferences", {})
     
     return f"""
-=== USER PROFILE ===
+=== USER PROFESSIONAL PROFILE ===
 
 PERSONAL INFO:
   Name: {p.get('firstName', '')} {p.get('lastName', '')}
@@ -185,15 +216,15 @@ PERSONAL INFO:
   Work Authorization: {p.get('workAuth', {}).get('label', 'N/A')}
   Summary: {p.get('summary', 'N/A')}
 
-WORK EXPERIENCE:
+WORK EXPERIENCE (Detailed History):
 {work_exps or '  None provided'}
+
+EXPERIENCE SUMMARY:
+  Total Cumulative Experience: {yoe_calc} years, {moe_calc} months (Calculated by summing all individual job durations)
+  Skills: {skills_text}
 
 EDUCATION:
 {edus or '  None provided'}
-
-SKILLS:
-  {skills_text}
-  Total Experience: {sk.get('yoe', 0)} years {sk.get('moe', 0)} months
 
 CERTIFICATIONS:
 {certs or '  None provided'}
@@ -201,8 +232,8 @@ CERTIFICATIONS:
 PROJECTS:
 {projs or '  None provided'}
 
-JOB PREFERENCES:
-  Roles: {", ".join(prefs.get("roles", [])) or 'N/A'}
+JOB PREFERENCES & TARGETS:
+  Roles: {", ".join(prefs.get("roles", [])) or 'N/A'} (Note: Role description for each company above explains exactly what I did in those roles)
   Salary: {prefs.get('salary', 'N/A')}
   Work Type: {prefs.get('workType', {}).get('label', 'N/A')}
   Relocation: {'Yes' if p.get('willingToRelocate') else 'No'}
@@ -424,7 +455,17 @@ async def agent_ask(req: AskRequest):
     profile_context = build_profile_context(profile) if profile else None
     
     if profile_context:
-        system_prompt = f"You are an intelligent AI assistant for a job application autofill tool.\nYou have been given the user's complete professional profile below.\nAnswer questions accurately and helpfully based ONLY on this profile data.\nIf the information is not in the profile, say so clearly.\nKeep answers concise unless asked for detail.\n\n{profile_context}"
+        system_prompt = (
+            "You are an intelligent AI assistant for a job application autofill tool.\n"
+            "You have been provided with the user's complete professional profile below.\n\n"
+            "IMPORTANT GUIDELINES:\n"
+            "1. Answer questions accurately based ONLY on the provided profile data.\n"
+            "2. 'Role Description' or 'Responsibilities' under each work experience entry explains exactly what the user did at that company.\n"
+            "3. Total years of experience (YOE) is calculated by summing the individual durations of all work experiences, not just from the first start date.\n"
+            "4. If information is missing, state that you don't have that specific detail in the profile.\n"
+            "5. Keep responses concise unless the user asks for more detail.\n\n"
+            f"{profile_context}"
+        )
     else:
         system_prompt = "You are an AI assistant for a job application autofill tool.\nThe user has not yet set up their profile. Encourage them to complete their profile at the Profile Setup page.\nYou can still answer general questions about the application."
 

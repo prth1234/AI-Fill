@@ -774,16 +774,21 @@ function Skills({ data, onChange, activeFields, onAdd, customFields, onCustomFie
                             const date = `${year}-${month}-01`;
                             onChange('careerStart', date);
                             
-                            const start = new Date(date);
+                            // Sum up durations of all work experiences correctly
+                            const allExps = workExp.experiences || [];
+                            let totalMons = 0;
                             const now = new Date();
-                            let years = now.getFullYear() - start.getFullYear();
-                            let mons = now.getMonth() - start.getMonth();
-                            if (mons < 0) {
-                              years--;
-                              mons += 12;
-                            }
-                            onChange('yoe', years);
-                            onChange('moe', mons);
+                            
+                            allExps.forEach(e => {
+                                if (!e.startDate) return;
+                                const start = new Date(e.startDate);
+                                const end = e.current ? now : (e.endDate ? new Date(e.endDate) : start);
+                                let mons = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+                                if (mons > 0) totalMons += mons;
+                            });
+                            
+                            onChange('yoe', Math.floor(totalMons / 12));
+                            onChange('moe', totalMons % 12);
                           }}
                           options={MONTH_OPTIONS}
                         />
@@ -796,16 +801,21 @@ function Skills({ data, onChange, activeFields, onAdd, customFields, onCustomFie
                             const date = `${year}-${month}-01`;
                             onChange('careerStart', date);
                             
-                            const start = new Date(date);
+                            // Sum up durations of all work experiences correctly
+                            const allExps = workExp.experiences || [];
+                            let totalMons = 0;
                             const now = new Date();
-                            let years = now.getFullYear() - start.getFullYear();
-                            let mons = now.getMonth() - start.getMonth();
-                            if (mons < 0) {
-                              years--;
-                              mons += 12;
-                            }
-                            onChange('yoe', years);
-                            onChange('moe', mons);
+                            
+                            allExps.forEach(e => {
+                                if (!e.startDate) return;
+                                const start = new Date(e.startDate);
+                                const end = e.current ? now : (e.endDate ? new Date(e.endDate) : start);
+                                let mons = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+                                if (mons > 0) totalMons += mons;
+                            });
+                            
+                            onChange('yoe', Math.floor(totalMons / 12));
+                            onChange('moe', totalMons % 12);
                           }}
                           options={YEAR_OPTIONS}
                         />
