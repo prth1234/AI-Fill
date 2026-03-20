@@ -58,9 +58,9 @@ function ChatMessage({ msg, onRetry }) {
               <Box variant="small" color="inherit">Analyzing...</Box>
             </SpaceBetween>
           ) : (
-            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5, fontSize: '14px' }}>
+            <div style={{ lineHeight: 1.4, fontSize: '14px' }}>
               {isUser ? (
-                msg.content
+                <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
               ) : (
                 <>
                   <div className="markdown-content">
@@ -113,10 +113,15 @@ export default function AIAssistant({ onClose }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [hasProfile, setHasProfile] = useState(null);
-  const messagesEndRef = useRef(null);
+  const scrollContainerRef = useRef(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
   }, [messages]);
 
   useEffect(() => {
@@ -159,18 +164,20 @@ export default function AIAssistant({ onClose }) {
 
   return (
     <div style={{
+      position: 'sticky',
+      top: 0,
       display: 'flex',
       flexDirection: 'column',
-      height: '100%',
+      height: 'calc(100vh - 60px)', /* Rigid dimensional bound to force internal flex-overflow to trigger safely */
       background: 'var(--color-background-layout-panel-content)'
     }}>
       {/* Header */}
       <div style={{ flexShrink: 0, padding: '16px 20px', borderBottom: '1px solid var(--color-border-container-divider)' }}>
-        <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold' }}>Genie Assistant</h1>
+        <h1 style={{ margin: 0, fontSize: '30px', fontWeight: 'bold' }}>Genie</h1>
       </div>
 
       {/* Messages Area - Native independent scroll */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px', paddingBottom: '32px' }}>
+      <div ref={scrollContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '20px', paddingBottom: '32px' }}>
         <SpaceBetween size="m">
           {messages.map((msg, idx) => (
             <ChatMessage 
@@ -179,7 +186,6 @@ export default function AIAssistant({ onClose }) {
               onRetry={(msg.role === 'assistant' && !msg.typing && idx > 0 && messages[idx-1].role === 'user') ? () => sendMessage(messages[idx-1].content) : null}
             />
           ))}
-          <div ref={messagesEndRef} />
         </SpaceBetween>
         
         {messages.length === 1 && (
@@ -244,6 +250,7 @@ export default function AIAssistant({ onClose }) {
         .markdown-content p:last-child { margin-bottom: 0; }
         .markdown-content ul { padding-left: 20px; margin-top: 0.25rem; margin-bottom: 0.5rem; }
         .markdown-content li { margin-bottom: 0.25rem; list-style-type: disc; }
+        .markdown-content li > p { margin: 0; display: inline; }
         .markdown-content strong { font-weight: 700; color: inherit; }
         .flex-wrap { flex-wrap: wrap; }
       `}</style>
