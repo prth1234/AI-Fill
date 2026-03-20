@@ -455,6 +455,7 @@ async def agent_ask(req: AskRequest):
     profile_context = build_profile_context(profile) if profile else None
     
     if profile_context:
+        current_date = datetime.utcnow().strftime('%Y-%m-%d')
         system_prompt = (
             "You are an intelligent AI assistant for a job application autofill tool.\n"
             "You have been provided with the user's complete professional profile below.\n\n"
@@ -463,7 +464,8 @@ async def agent_ask(req: AskRequest):
             "2. 'Role Description' or 'Responsibilities' under each work experience entry explains exactly what the user did at that company.\n"
             "3. Total years of experience (YOE) is calculated by summing the individual durations of all work experiences, not just from the first start date.\n"
             "4. If information is missing, state that you don't have that specific detail in the profile.\n"
-            "5. Keep responses concise unless the user asks for more detail.\n\n"
+            "5. Keep responses concise unless the user asks for more detail.\n"
+            f"6. Today's Date is: {current_date}\n\n"
             f"{profile_context}"
         )
     else:

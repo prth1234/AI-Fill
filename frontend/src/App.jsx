@@ -58,21 +58,10 @@ function usePersistedState(key, defaultValue) {
 }
 
 
-function GlassHeader({ theme, onToggleTheme, onNavigate }) {
+function GlassHeader({ theme, onToggleTheme, onNavigate, onToggleGenie, genieOpen }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
   const isDark = theme === 'dark';
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handler = (e) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
-        setUserMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
 
   return (
     <div id="top-nav" className={`glass-header ${isDark ? 'glass-dark' : 'glass-light'}`}>
@@ -98,6 +87,21 @@ function GlassHeader({ theme, onToggleTheme, onNavigate }) {
             <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
           </svg>
           Launch AutoFill
+        </button>
+
+        {/* Genie Toggle */}
+        <button
+          className="glass-nav-btn"
+          onClick={onToggleGenie}
+          style={{ 
+            color: 'white',
+            background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+            border: 'none',
+            outline: genieOpen ? '2px solid #a855f7' : 'none',
+            outlineOffset: '2px'
+          }}
+        >
+          <span style={{ fontSize: '13px', fontWeight: 600 }}>Genie Agent</span>
         </button>
 
         {/* Theme Toggle */}
@@ -161,6 +165,7 @@ function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
   const [navOpen, setNavOpen] = useState(true);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [theme, setTheme] = usePersistedState('app_theme', 'system');
 
@@ -206,10 +211,21 @@ function AppShell() {
 
   return (
     <>
+      <style>{`
+        .main-scroll-content::-webkit-scrollbar {
+          display: none;
+        }
+        .main-scroll-content {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
       <GlassHeader
         theme={theme}
         onToggleTheme={toggleTheme}
         onNavigate={navigate}
+        onToggleGenie={() => setToolsOpen(!toolsOpen)}
+        genieOpen={toolsOpen}
       />
       <AppLayout
         headerSelector="#top-nav"
@@ -223,35 +239,38 @@ function AppShell() {
             items={NAV_ITEMS}
           />
         }
-        breadcrumbs={
-          <BreadcrumbGroup
-            items={crumbs}
-            onFollow={e => { e.preventDefault(); navigate(e.detail.href); }}
-          />
-        }
+        // breadcrumbs={
+        //   <BreadcrumbGroup
+        //     items={crumbs}
+        //     onFollow={e => { e.preventDefault(); navigate(e.detail.href); }}
+        //   />
+        // }
         content={
-          isLoading ? (
-            <Box padding="xxl" textAlign="center">
-              <SpaceBetween size="m">
-                <Spinner size="large" />
-                <Box variant="h3">Preparing your workspace...</Box>
-              </SpaceBetween>
-            </Box>
-          ) : (
-            <Routes>
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/profile/*" element={<ProfileSetupPage />} />
-              <Route path="/autofill" element={<AutoFillPage />} />
-              <Route path="/jobs" element={<JobsPage />} />
-              <Route path="/custom" element={<CustomProfilePage />} />
-              <Route path="*" element={<DashboardPage />} />
-            </Routes>
-          )
+          <div className="main-scroll-content" style={{ height: 'calc(100vh - 60px)', overflowY: 'auto' }}>
+            {isLoading ? (
+              <Box padding="xxl" textAlign="center">
+                <SpaceBetween size="m">
+                  <Spinner size="large" />
+                  <Box variant="h3">Preparing your workspace...</Box>
+                </SpaceBetween>
+              </Box>
+            ) : (
+              <Routes>
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/profile/*" element={<ProfileSetupPage />} />
+                <Route path="/autofill" element={<AutoFillPage />} />
+                <Route path="/jobs" element={<JobsPage />} />
+                <Route path="/custom" element={<CustomProfilePage />} />
+                <Route path="*" element={<DashboardPage />} />
+              </Routes>
+            )}
+          </div>
         }
-        toolsHide
+        toolsOpen={toolsOpen}
+        onToolsChange={({ detail }) => setToolsOpen(detail.open)}
+        tools={<AIAssistant />}
+        toolsWidth={480}
       />
-      {/* Global AI Assistant — floats on all pages */}
-      <AIAssistant />
     </>
   );
 }

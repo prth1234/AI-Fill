@@ -1236,7 +1236,7 @@ export default function ProfileSetupPage() {
   return (
     <>
       {/* Backend sync status banner */}
-      <div style={{
+      {/* <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '10px 16px', marginBottom: '12px',
         borderRadius: '10px',
@@ -1248,7 +1248,6 @@ export default function ProfileSetupPage() {
               {backendSynced === true ? "Profile Synced" : "Ready"}
             </StatusIndicator>
 
-          {/* Completeness */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div style={{ width: '100px', height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
               <div style={{ width: `${completeness}%`, height: '100%', background: completenessColor, borderRadius: '3px', transition: 'width 0.4s ease' }} />
@@ -1266,7 +1265,7 @@ export default function ProfileSetupPage() {
             {status === 'deleting' ? 'Deleting…' : 'Delete your profile'}
           </button>
         </div>
-      </div>
+      </div> */}
 
       {status === 'success' && <Alert type="success" header="Profile Saved!" dismissible onDismiss={() => setStatus(null)}>Your professional profile is synced and ready for the AI assistant.</Alert>}
       {status === 'error' && <Alert type="error" header="Save Failed" dismissible onDismiss={() => setStatus(null)}>Could not save profile. Check backend connection.</Alert>}
