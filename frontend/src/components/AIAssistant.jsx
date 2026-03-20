@@ -41,59 +41,58 @@ function ChatMessage({ msg, onRetry }) {
   return (
     <Box margin={{ bottom: 'm' }}>
       <div style={{ display: 'flex', flexDirection: isUser ? 'row-reverse' : 'row', gap: '8px', alignItems: 'flex-start' }}>
-        <div style={{
-          maxWidth: '85%',
-          minWidth: !isUser && !msg.typing ? '240px' : 'auto',
-          padding: '12px 16px',
-          borderRadius: '16px',
-          borderTopLeftRadius: isUser ? '16px' : '4px',
-          borderTopRightRadius: isUser ? '4px' : '16px',
-          background: 'transparent',
-          border: isUser ? '1px solid rgba(168, 85, 247, 0.8)' : '1px solid #777777',
-          color: 'var(--color-text-body-default)'
-        }}>
-          {msg.typing ? (
-            <SpaceBetween direction="horizontal" size="xs">
-              <Spinner />
-              <Box variant="small" color="inherit">Analyzing...</Box>
-            </SpaceBetween>
-          ) : (
-            <div style={{ lineHeight: 1.4, fontSize: '14px' }}>
-              {isUser ? (
-                <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
-              ) : (
-                <>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxWidth: '85%' }}>
+          <div style={{
+            minWidth: !isUser && !msg.typing ? '240px' : 'auto',
+            padding: '12px 16px',
+            borderRadius: '16px',
+            borderTopLeftRadius: isUser ? '16px' : '4px',
+            borderTopRightRadius: isUser ? '4px' : '16px',
+            background: 'transparent',
+            border: isUser ? '1px solid rgba(168, 85, 247, 0.8)' : '1px solid #777777',
+            color: 'var(--color-text-body-default)'
+          }}>
+            {msg.typing ? (
+              <SpaceBetween direction="horizontal" size="xs">
+                <Spinner />
+                <Box variant="small" color="inherit">Analyzing...</Box>
+              </SpaceBetween>
+            ) : (
+              <div style={{ lineHeight: 1.4, fontSize: '14px' }}>
+                {isUser ? (
+                  <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+                ) : (
                   <div className="markdown-content">
                     <ReactMarkdown>{msg.content}</ReactMarkdown>
                   </div>
-                  
-                  {/* Action Bar */}
-                  <div style={{ 
-                    display: 'flex', 
-                    gap: '12px', 
-                    alignItems: 'center', 
-                    marginTop: '12px',
-                    paddingTop: '8px',
-                    borderTop: '1px solid var(--color-border-container-divider)'
-                  }}>
-                    <button onClick={handleCopy} title="Copy" style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: copied ? '#22c55e' : 'var(--color-text-body-secondary)', transition: 'color 0.2s', display: 'flex' }}>
-                       {copied ? <TbCheck size={16} /> : <TbCopy size={16} />}
-                    </button>
-                    {onRetry && (
-                      <button onClick={onRetry} title="Retry" style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--color-text-body-secondary)', transition: 'color 0.2s', display: 'flex' }}>
-                         <TbRefresh size={16} />
-                      </button>
-                    )}
-                    <div style={{ flex: 1 }} />
-                    <button onClick={() => setFeedback(feedback === 'up' ? null : 'up')} title="Helpful" style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: feedback === 'up' ? '#a855f7' : 'var(--color-text-body-secondary)', transition: 'color 0.2s', display: 'flex' }}>
-                       {feedback === 'up' ? <TbThumbUpFilled size={16} /> : <TbThumbUp size={16} />}
-                    </button>
-                    <button onClick={() => setFeedback(feedback === 'down' ? null : 'down')} title="Not helpful" style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: feedback === 'down' ? '#ef4444' : 'var(--color-text-body-secondary)', transition: 'color 0.2s', display: 'flex' }}>
-                       {feedback === 'down' ? <TbThumbDownFilled size={16} /> : <TbThumbDown size={16} />}
-                    </button>
-                  </div>
-                </>
+                )}
+              </div>
+            )}
+          </div>
+          
+          {/* Action Bar (Outside the bubble, left-aligned) */}
+          {!isUser && !msg.typing && (
+            <div style={{ 
+              display: 'flex', 
+              gap: '14px', 
+              alignItems: 'center', 
+              marginLeft: '8px',
+              marginTop: '4px'
+            }}>
+              <button onClick={handleCopy} title="Copy" style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: copied ? '#22c55e' : 'var(--color-text-body-secondary)', transition: 'color 0.2s', display: 'flex' }}>
+                 {copied ? <TbCheck size={16} /> : <TbCopy size={16} />}
+              </button>
+              {onRetry && (
+                <button onClick={onRetry} title="Retry" style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--color-text-body-secondary)', transition: 'color 0.2s', display: 'flex' }}>
+                   <TbRefresh size={16} />
+                </button>
               )}
+              <button onClick={() => setFeedback(feedback === 'up' ? null : 'up')} title="Helpful" style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: feedback === 'up' ? '#a855f7' : 'var(--color-text-body-secondary)', transition: 'color 0.2s', display: 'flex' }}>
+                 {feedback === 'up' ? <TbThumbUpFilled size={16} /> : <TbThumbUp size={16} />}
+              </button>
+              <button onClick={() => setFeedback(feedback === 'down' ? null : 'down')} title="Not helpful" style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: feedback === 'down' ? '#ef4444' : 'var(--color-text-body-secondary)', transition: 'color 0.2s', display: 'flex' }}>
+                 {feedback === 'down' ? <TbThumbDownFilled size={16} /> : <TbThumbDown size={16} />}
+              </button>
             </div>
           )}
         </div>

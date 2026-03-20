@@ -1316,6 +1316,16 @@ export default function ProfileSetupPage() {
           </Container>
         </SpaceBetween>
       )}
+
+      <style>{`
+        /* Supercharge the Cloudscape Wizard Step Headings to match Launch layout */
+        h2[class*="awsui_title_"], h2[class*="awsui_heading_"] {
+          font-size: 36px !important;
+          font-weight: 800 !important;
+          letter-spacing: -0.02em !important;
+          margin-bottom: 8px !important;
+        }
+      `}</style>
     </>
   );
 }
