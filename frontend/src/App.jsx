@@ -212,10 +212,10 @@ function AppShell() {
   return (
     <>
       <style>{`
-        .main-scroll-content::-webkit-scrollbar {
+        ::-webkit-scrollbar {
           display: none;
         }
-        .main-scroll-content {
+        html, body, * {
           -ms-overflow-style: none;
           scrollbar-width: none;
         }
@@ -239,14 +239,14 @@ function AppShell() {
             items={NAV_ITEMS}
           />
         }
-        // breadcrumbs={
-        //   <BreadcrumbGroup
-        //     items={crumbs}
-        //     onFollow={e => { e.preventDefault(); navigate(e.detail.href); }}
-        //   />
-        // }
+        breadcrumbs={
+          <BreadcrumbGroup
+            items={crumbs}
+            onFollow={e => { e.preventDefault(); navigate(e.detail.href); }}
+          />
+        }
         content={
-          <div className="main-scroll-content" style={{ height: 'calc(100vh - 60px)', overflowY: 'auto' }}>
+          <div className="main-scroll-content">
             {isLoading ? (
               <Box padding="xxl" textAlign="center">
                 <SpaceBetween size="m">
@@ -268,7 +268,7 @@ function AppShell() {
         }
         toolsOpen={toolsOpen}
         onToolsChange={({ detail }) => setToolsOpen(detail.open)}
-        tools={<AIAssistant />}
+        tools={<AIAssistant onClose={() => setToolsOpen(false)} />}
         toolsWidth={480}
       />
     </>
