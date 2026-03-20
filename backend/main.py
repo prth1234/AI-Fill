@@ -446,7 +446,7 @@ async def agent_ask(req: AskRequest):
                     "stream": False,
                     "options": {"temperature": 0.3, "num_predict": 512}
                 },
-                timeout=60.0
+                timeout=120.0
             )
             if ollama_res.status_code == 200:
                 data = ollama_res.json()
@@ -455,6 +455,7 @@ async def agent_ask(req: AskRequest):
             else:
                 raise Exception(f"Ollama returned {ollama_res.status_code}")
     except Exception as e:
+        print(f"Ollama failed for {user_id}: {repr(e)}")
         ollama_available = False
         
         # 2. Try OpenAI (Fallback)
@@ -481,7 +482,7 @@ async def agent_ask(req: AskRequest):
                     else:
                         raise Exception(f"OpenAI returned {oa_res.status_code}")
             except Exception as oa_e:
-                print(f"OpenAI fallback failed: {oa_e}")
+                print(f"OpenAI fallback failed for {user_id}: {oa_e}")
                 pass
 
     # 3. Final Fallback (Summary template)

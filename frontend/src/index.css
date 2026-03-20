@@ -105,7 +105,7 @@ h2 {
 }
 
 /* Force Cloudscape headers to be much bigger and fix coloring bugs */
-h1, [class*="awsui_header-variant-h1_"],
+[class*="awsui_header-variant-h1_"],
 [class*="awsui_header_"] h1, [class*="awsui_header_"] h2,
 [class*="awsui_heading-text"] {
   font-size: 56px !important;
@@ -116,7 +116,7 @@ h1, [class*="awsui_header-variant-h1_"],
 }
 
 /* Force Cloudscape headers to be much bigger and fix coloring bugs */
-h2, [class*="awsui_header-variant-h2_"],
+[class*="awsui_header-variant-h2_"],
 [class*="awsui_header_"] h3 {
   font-size: 28px !important;
   letter-spacing: -0.5px !important;

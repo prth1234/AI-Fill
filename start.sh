@@ -127,16 +127,25 @@ check_requirements
 
 # ── Step 2: Dependencies ──────────────────────────────────────────────────────
 label "Dependencies"
-info "Installing Backend Python dependencies..."
-if ! command -v pip3 &>/dev/null && ! command -v pip &>/dev/null; then
-  err "pip (Python package manager) not found. Install from https://pip.pypa.io"
-  exit 1
+info "Setting up Python virtual environment..."
+VENV_PATH="$BE_DIR/.venv"
+if [ ! -d "$VENV_PATH" ]; then
+  if ! command -v python3 &>/dev/null; then
+    err "Python 3 not found. Please install Python 3.8+ from https://python.org"
+    exit 1
+  fi
+  python3 -m venv "$VENV_PATH"
+  ok "Virtual environment created at $VENV_PATH"
 fi
-PIP_CMD=$(command -v pip3 || command -v pip)
-if ($PIP_CMD install -r "$BE_DIR/requirements.txt" --quiet 2>&1); then
+
+info "Installing Backend Python dependencies..."
+if ("$VENV_PATH/bin/pip" install -r "$BE_DIR/requirements.txt" --quiet 2>&1); then
   ok "Backend Python dependencies ready"
 else
   err "Backend Python install failed"
+  # Try without --quiet if it fails to see errors
+  echo "Retrying without --quiet to show errors..."
+  "$VENV_PATH/bin/pip" install -r "$BE_DIR/requirements.txt"
   exit 1
 fi
 
@@ -149,12 +158,12 @@ free_port $FE_PORT
 
 # ── Step 4: Start backend ─────────────────────────────────────────────────────
 label "Starting Servers"
-if ! command -v python3 &>/dev/null && ! command -v python &>/dev/null; then
-  err "Python not found. Please install Python 3.8+"
+VENV_PATH="$BE_DIR/.venv"
+if [ ! -f "$VENV_PATH/bin/python" ]; then
+  err "Virtual environment python not found at $VENV_PATH/bin/python"
   exit 1
 fi
-PY_CMD=$(command -v python3 || command -v python)
-(cd "$BE_DIR" && $PY_CMD main.py 2>&1 | sed 's/^/  [backend-py] /' ) &
+(cd "$BE_DIR" && "$VENV_PATH/bin/python" main.py 2>&1 | sed 's/^/  [backend-py] /' ) &
 BE_PID=$!
 sleep 1
 
