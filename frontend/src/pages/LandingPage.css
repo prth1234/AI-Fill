@@ -414,31 +414,65 @@
 }
 
 .landing-chip {
-  background: #f0f9ff;
-  border: 1px solid #bae6fd;
-  color: #0369a1;
-  font-family: inherit;
-  font-size: 12px;
-  padding: 6px 12px;
-  border-radius: 100px;
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
+  height: 32px;
+  min-height: unset;
+  padding: 0 14px;
+  border-radius: 9999px;
+  font-size: 13px;
   font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  
+  /* Standard liquid glass look (Light Mode compatible) */
+  background: #e0f2fe;
+  border: 1.5px solid #7dd3fc;
+  color: #0369a1;
+  outline: none;
 }
 
 .landing-chip:hover {
-  background: #e0f2fe;
-  border-color: #7dd3fc;
+  background: #bae6fd;
+  border-color: #38bdf8;
+  box-shadow: 0 4px 12px rgba(3, 105, 161, 0.15);
 }
 
 .landing-chip.active,
 .landing-chip.custom {
-  background: #e0f2fe;
-  border: 1px solid #0284c7;
-  color: #0284c7;
+  background: rgba(14, 165, 233, 0.15);
+  border-color: rgba(14, 165, 233, 0.6);
+  color: #7dd3fc;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   font-weight: 600;
+  /* Glowing effect for active items */
+  box-shadow: 0 0 15px rgba(14, 165, 233, 0.2);
 }
+
+.landing-chip.active:hover,
+.landing-chip.custom:hover {
+  background: rgba(14, 165, 233, 0.25);
+  border-color: #38bdf8;
+  color: #ffffff;
+}
+
+.landing-chip:not(.active) {
+  /* Inactive items in landing modal (which is dark) should look muted */
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.landing-chip:not(.active):hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
 
 .landing-modal-footer {
   margin-top: 32px;

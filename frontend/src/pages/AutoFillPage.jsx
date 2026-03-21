@@ -14,7 +14,11 @@ import ProgressBar from '@cloudscape-design/components/progress-bar';
 import Toggle from '@cloudscape-design/components/toggle';
 import Textarea from '@cloudscape-design/components/textarea';
 import ColumnLayout from '@cloudscape-design/components/column-layout';
+import Tabs from '@cloudscape-design/components/tabs';
+import LineChart from '@cloudscape-design/components/line-chart';
+import PieChart from '@cloudscape-design/components/pie-chart';
 import axios from 'axios';
+
 
 const API = 'http://localhost:4000/api';
 
@@ -181,21 +185,79 @@ export default function AutoFillPage() {
           </Container>
         )}
 
-        <Container header={<Header variant="h3">Session Logs</Header>}>
-          <Box variant="code" className="autofill-log">
-            {logs.length === 0
-              ? <Box color="text-status-inactive">Logs will appear here when a session is running…</Box>
-              : logs.map(l => (
-                  <Box key={l.id} variant="p">
-                    <Box as="span" color="text-status-inactive">[{l.time}]</Box>{' '}
-                    <Box as="span" color={l.level === 'error' ? 'text-status-error' : l.level === 'success' ? 'text-status-success' : 'text-body-default'}>
-                      {l.msg}
-                    </Box>
+        <Container>
+          <Tabs
+            tabs={[
+              {
+                label: "Execution Logs",
+                id: "logs",
+                content: (
+                  <Box variant="code" className="autofill-log" padding="m">
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {logs.length === 0
+                        ? <Box color="text-status-inactive">Logs will appear here when a session is running…</Box>
+                        : logs.map(l => (
+                            <div key={l.id} style={{ display: 'flex', gap: '8px', fontFamily: 'monospace', fontSize: '13px' }}>
+                              <Box as="span" color="text-status-inactive" style={{ whiteSpace: 'nowrap' }}>[{l.time}]</Box>
+                              <Box as="span" color={l.level === 'error' ? 'text-status-error' : l.level === 'success' ? 'text-status-success' : 'text-body-default'}>
+                                {l.msg}
+                              </Box>
+                            </div>
+                          ))
+                      }
+                    </div>
                   </Box>
-                ))
-            }
-          </Box>
+                )
+              },
+              {
+                label: "AI Monitoring",
+                id: "monitoring",
+                content: (
+                  <ColumnLayout columns={2}>
+                    <Container header={<Header variant="h3">Token Usage (AI)</Header>}>
+                       <PieChart
+                        data={[
+                          { title: "Prompt Tokens", value: 450, color: "#0073bb" },
+                          { title: "Completion Tokens", value: 120, color: "#6b6375" },
+                          { title: "Reasoning Tokens", value: 80, color: "#aa3bff" }
+                        ]}
+                        detailPopoverContent={(detail, item) => [
+                          { key: "Value", value: item.value },
+                          { key: "Percentage", value: `${((item.value / 650) * 100).toFixed(1)}%` }
+                        ]}
+                        segmentDescription={(item, value) => `${value} units`}
+                        ariaLabel="Token distribution chart"
+                        height={180}
+                      />
+                    </Container>
+                    <Container header={<Header variant="h3">API Latency (ms)</Header>}>
+                      <LineChart
+                        series={[
+                          {
+                            title: "Latency",
+                            type: "line",
+                            data: [
+                              { x: 1, y: 120 }, { x: 2, y: 450 }, { x: 3, y: 300 },
+                              { x: 4, y: 800 }, { x: 5, y: 350 }, { x: 6, y: 200 }
+                            ],
+                            color: "#0073bb"
+                          }
+                        ]}
+                        xDomain={[1, 6]}
+                        yDomain={[0, 1000]}
+                        xTitle="Request #"
+                        yTitle="Time (ms)"
+                        height={180}
+                        ariaLabel="Latency over time"
+                      />
+                    </Container>
+                  </ColumnLayout>
+                )
+              }
+            ]}
+          />
         </Container>
+
       </SpaceBetween>
     </ContentLayout>
   );
