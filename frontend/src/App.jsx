@@ -91,30 +91,39 @@ function GlassHeader({ theme, onToggleTheme, onNavigate, onToggleGenie, genieOpe
           Launch AutoFill
         </button>
 
-        {/* Genie AI Toggle */}
-        <button
-          className="genie-ai-btn"
+        <div
+          role="button"
+          tabIndex={0}
+          className="genie-ai-btn-wrapper"
           onClick={onToggleGenie}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onToggleGenie(); }}
           style={{
-            background: 'transparent',
+            background: genieOpen 
+              ? 'radial-gradient(circle, rgba(168, 85, 247, 0.25) 0%, rgba(168, 85, 247, 0) 70%)' 
+              : 'transparent',
             border: 'none',
-            // padding: '4px 8px',
+            padding: '4px 12px',
             cursor: 'pointer',
-            borderRadius: '12px',
-            transition: 'all 0.3s ease',
+            borderRadius: '999px',
+            transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
             outline: 'none',
-            boxShadow: genieOpen ? '0 0 15px rgba(168, 85, 247, 0.4)' : 'none'
+            // boxShadow: genieOpen ? '0 0 20px rgba(168, 85, 247, 0.3)' : 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
         >
-
           <GradientText
             colors={["#5227FF","#FF9FFC","#B19EEF"]}
             animationSpeed={8}
             showBorder={false}
           >
-            Genie AI
+            AI ✦
           </GradientText>
-        </button>
+        </div>
+
+
+
 
 
         {/* Theme Toggle */}

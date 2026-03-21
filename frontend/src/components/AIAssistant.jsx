@@ -105,13 +105,8 @@ function ChatMessage({ msg, onRetry }) {
 }
 
 export default function AIAssistant({ onClose }) {
-  const [messages, setMessages] = useState([
-    {
-      id: 0,
-      role: 'assistant',
-      content: "Welcome. I am the Genie Assistant. I can answer questions about your professional profile — work history, skills, education, and preferences.",
-    }
-  ]);
+  const [messages, setMessages] = useState([]);
+
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [hasProfile, setHasProfile] = useState(null);
@@ -198,7 +193,7 @@ export default function AIAssistant({ onClose }) {
           ))}
         </SpaceBetween>
         
-        {messages.length === 1 && (
+        {messages.length === 0 && (
           <div style={{ marginTop: '24px' }}>
             <Box variant="h4" color="text-body-secondary" margin={{ bottom: 's' }}>Suggested Actions</Box>
             <SpaceBetween size="xs" direction="horizontal" className="flex-wrap">
@@ -210,6 +205,7 @@ export default function AIAssistant({ onClose }) {
             </SpaceBetween>
           </div>
         )}
+
       </div>
 
       {/* Fixed Bottom Input Footer */}
@@ -265,22 +261,27 @@ export default function AIAssistant({ onClose }) {
         .flex-wrap { flex-wrap: wrap; }
         
         .user-message-bubble {
-          padding: 12px 16px;
-          border-radius: 16px;
-          border-top-left-radius: 16px;
-          border-top-right-radius: 4px;
-          background: rgba(168, 85, 247, 0.08);
-          border: 2px solid #581c87;
-          color: #581c87;
+          padding: 8px 16px;
+          border-radius: 9999px; /* Official pill shape */
+          background: transparent;
+          border: 1.5px solid #0073bb; /* Match normal Cloudscape button blue */
+          color: #0073bb;
           font-weight: 500;
+          font-size: 13px;
+          line-height: 1.2;
         }
 
         [data-awsui-color-mode="dark"] .user-message-bubble,
         .awsui-dark-mode .user-message-bubble {
-          border-color: #a855f7 !important;
-          color: #a855f7 !important;
-          background: rgba(168, 85, 247, 0.15) !important;
+          background: transparent !important;
+          border: 1.5px solid #38bdf8 !important; /* Match your Cyan suggested actions */
+          color: #38bdf8 !important;
+          box-shadow: 0 0 10px rgba(56, 189, 248, 0.15);
         }
+
+
+
+
 
         .assistant-message-bubble {
           padding: 12px 16px;
