@@ -58,6 +58,8 @@ function usePersistedState(key, defaultValue) {
 }
 
 
+import GradientText from './components/GradientText';
+
 function GlassHeader({ theme, onToggleTheme, onNavigate, onToggleGenie, genieOpen }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
@@ -89,20 +91,31 @@ function GlassHeader({ theme, onToggleTheme, onNavigate, onToggleGenie, genieOpe
           Launch AutoFill
         </button>
 
-        {/* Genie Toggle */}
+        {/* Genie AI Toggle */}
         <button
-          className="glass-nav-btn"
+          className="genie-ai-btn"
           onClick={onToggleGenie}
-          style={{ 
-            color: 'white',
-            background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+          style={{
+            background: 'transparent',
             border: 'none',
-            outline: genieOpen ? '2px solid #a855f7' : 'none',
-            outlineOffset: '2px'
+            // padding: '4px 8px',
+            cursor: 'pointer',
+            borderRadius: '12px',
+            transition: 'all 0.3s ease',
+            outline: 'none',
+            boxShadow: genieOpen ? '0 0 15px rgba(168, 85, 247, 0.4)' : 'none'
           }}
         >
-          <span style={{ fontSize: '13px', fontWeight: 600 }}>Genie Agent</span>
+
+          <GradientText
+            colors={["#5227FF","#FF9FFC","#B19EEF"]}
+            animationSpeed={8}
+            showBorder={false}
+          >
+            Genie AI
+          </GradientText>
         </button>
+
 
         {/* Theme Toggle */}
         <button

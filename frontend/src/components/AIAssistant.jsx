@@ -16,6 +16,10 @@ import {
   TbThumbUpFilled, 
   TbThumbDownFilled 
 } from "react-icons/tb";
+import GradientText from './GradientText';
+import ShinyText from './ShinyText';
+
+
 
 const API = 'http://localhost:4000/api';
 
@@ -42,22 +46,21 @@ function ChatMessage({ msg, onRetry }) {
     <Box margin={{ bottom: 'm' }}>
       <div style={{ display: 'flex', flexDirection: isUser ? 'row-reverse' : 'row', gap: '8px', alignItems: 'flex-start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxWidth: '85%' }}>
-          <div style={{
+          <div className={isUser ? 'user-message-bubble' : 'assistant-message-bubble'} style={{
             minWidth: !isUser && !msg.typing ? '240px' : 'auto',
-            padding: '12px 16px',
-            borderRadius: '16px',
-            borderTopLeftRadius: isUser ? '16px' : '4px',
-            borderTopRightRadius: isUser ? '4px' : '16px',
-            background: 'transparent',
-            border: isUser ? '1px solid rgba(168, 85, 247, 0.8)' : '1px solid #777777',
-            color: 'var(--color-text-body-default)'
           }}>
             {msg.typing ? (
-              <SpaceBetween direction="horizontal" size="xs">
-                <Spinner />
-                <Box variant="small" color="inherit">Analyzing...</Box>
-              </SpaceBetween>
+              <Box variant="small" color="inherit">
+                <ShinyText 
+                  text="Thinking..." 
+                  speed={2} 
+                  color="#b5b5b5" 
+                  shineColor="#ffffff" 
+                  spread={120}
+                />
+              </Box>
             ) : (
+
               <div style={{ lineHeight: 1.4, fontSize: '14px' }}>
                 {isUser ? (
                   <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
@@ -171,8 +174,16 @@ export default function AIAssistant({ onClose }) {
       background: 'var(--color-background-layout-panel-content)'
     }}>
       {/* Header */}
-      <div style={{ flexShrink: 0, padding: '16px 20px', borderBottom: '1px solid var(--color-border-container-divider)' }}>
-        <h1 style={{ margin: 0, fontSize: '30px', fontWeight: 'bold' }}>Genie</h1>
+      <div style={{ flexShrink: 0, padding: '16px 20px', borderBottom: '1px solid var(--color-border-container-divider)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <h1 style={{ margin: 0, fontSize: '30px', fontWeight: 'bold' }}>
+          <GradientText
+            colors={["#5227FF", "#FF9FFC", "#B19EEF"]}
+            animationSpeed={8}
+            showBorder={false}
+          >
+            Genie AI
+          </GradientText>
+        </h1>
       </div>
 
       {/* Messages Area - Native independent scroll */}
@@ -239,7 +250,7 @@ export default function AIAssistant({ onClose }) {
             </button>
           </div>
           <Box variant="small" color="text-body-secondary" textAlign="center">
-            Always review AI-generated answers
+            Genie AI can make mistakes
           </Box>
         </SpaceBetween>
       </div>
@@ -252,7 +263,36 @@ export default function AIAssistant({ onClose }) {
         .markdown-content li > p { margin: 0; display: inline; }
         .markdown-content strong { font-weight: 700; color: inherit; }
         .flex-wrap { flex-wrap: wrap; }
+        
+        .user-message-bubble {
+          padding: 12px 16px;
+          border-radius: 16px;
+          border-top-left-radius: 16px;
+          border-top-right-radius: 4px;
+          background: rgba(168, 85, 247, 0.08);
+          border: 2px solid #581c87;
+          color: #581c87;
+          font-weight: 500;
+        }
+
+        [data-awsui-color-mode="dark"] .user-message-bubble,
+        .awsui-dark-mode .user-message-bubble {
+          border-color: #a855f7 !important;
+          color: #a855f7 !important;
+          background: rgba(168, 85, 247, 0.15) !important;
+        }
+
+        .assistant-message-bubble {
+          padding: 12px 16px;
+          border-radius: 16px;
+          border-top-left-radius: 4px;
+          border-top-right-radius: 16px;
+          background: transparent;
+          border: 1px solid #777777;
+          color: var(--color-text-body-default);
+        }
       `}</style>
     </div>
   );
 }
+
