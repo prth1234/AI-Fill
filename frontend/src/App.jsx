@@ -187,9 +187,10 @@ function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
   const [navOpen, setNavOpen] = useState(true);
-  const [toolsOpen, setToolsOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = usePersistedState('genie_panel_open', false);
   const [isLoading, setIsLoading] = useState(false);
   const [theme, setTheme] = usePersistedState('app_theme', 'system');
+
 
   useEffect(() => {
     if (theme === 'dark') applyMode(Mode.Dark);

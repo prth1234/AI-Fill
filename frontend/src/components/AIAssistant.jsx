@@ -16,9 +16,10 @@ import {
   TbThumbUpFilled, 
   TbThumbDownFilled 
 } from "react-icons/tb";
-import { MdCancel } from "react-icons/md";
+import { FaStopCircle } from "react-icons/fa";
 import GradientText from './GradientText';
 import ShinyText from './ShinyText';
+
 
 
 
@@ -111,8 +112,25 @@ function ChatMessage({ msg, onRetry, dots }) {
   );
 }
 
+function usePersistedState(key, defaultValue) {
+  const [state, setState] = useState(() => {
+    try {
+      const saved = localStorage.getItem(key);
+      if (!saved) return defaultValue;
+      const parsed = JSON.parse(saved);
+      // Clean up any "thinking" states from a previous session
+      return Array.isArray(parsed) ? parsed.filter(m => !m.typing) : parsed;
+    } catch { return defaultValue; }
+  });
+  useEffect(() => {
+    localStorage.setItem(key, JSON.stringify(state));
+  }, [key, state]);
+  return [state, setState];
+}
+
 export default function AIAssistant({ onClose }) {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = usePersistedState('genie_chat_history', []);
+
   const [dots, setDots] = useState('');
   
   // Animation loop for dots
@@ -288,10 +306,11 @@ export default function AIAssistant({ onClose }) {
               }}
             >
               {loading ? (
-                <MdCancel size={32} color="#ef4444" title="Cancel Request" />
+                <FaStopCircle size={32} color="#ef4444" title="Stop AI" />
               ) : (
                 <TbCircleArrowUpFilled size={32} color="var(--color-background-button-primary-default)" title="Send Message" />
               )}
+
             </button>
 
           </div>
