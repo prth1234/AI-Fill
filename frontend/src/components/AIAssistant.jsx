@@ -16,8 +16,10 @@ import {
   TbThumbUpFilled, 
   TbThumbDownFilled 
 } from "react-icons/tb";
+import { MdCancel } from "react-icons/md";
 import GradientText from './GradientText';
 import ShinyText from './ShinyText';
+
 
 
 
@@ -31,7 +33,8 @@ const SUGGESTED_QUESTIONS = [
   'How complete is my profile?',
 ];
 
-function ChatMessage({ msg, onRetry }) {
+function ChatMessage({ msg, onRetry, dots }) {
+
   const isUser = msg.role === 'user';
   const [copied, setCopied] = useState(false);
   const [feedback, setFeedback] = useState(null);
@@ -46,13 +49,14 @@ function ChatMessage({ msg, onRetry }) {
     <Box margin={{ bottom: 'm' }}>
       <div style={{ display: 'flex', flexDirection: isUser ? 'row-reverse' : 'row', gap: '8px', alignItems: 'flex-start' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxWidth: '85%' }}>
-          <div className={isUser ? 'user-message-bubble' : 'assistant-message-bubble'} style={{
+          <div className={isUser ? 'user-message-bubble' : (msg.typing ? '' : 'assistant-message-bubble')} style={{
             minWidth: !isUser && !msg.typing ? '240px' : 'auto',
+            padding: msg.typing ? '4px 0' : undefined
           }}>
             {msg.typing ? (
               <Box variant="small" color="inherit">
                 <ShinyText 
-                  text="Thinking..." 
+                  text={`Thinking${dots || '...'}`} 
                   speed={2} 
                   color="#b5b5b5" 
                   shineColor="#ffffff" 
@@ -60,6 +64,9 @@ function ChatMessage({ msg, onRetry }) {
                 />
               </Box>
             ) : (
+
+
+
 
               <div style={{ lineHeight: 1.4, fontSize: '14px' }}>
                 {isUser ? (
@@ -106,11 +113,40 @@ function ChatMessage({ msg, onRetry }) {
 
 export default function AIAssistant({ onClose }) {
   const [messages, setMessages] = useState([]);
+  const [dots, setDots] = useState('');
+  
+  // Animation loop for dots
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDots(prev => (prev.length >= 3 ? '' : prev + '.'));
+    }, 500);
+    return () => clearInterval(interval);
+  }, []);
 
   const [input, setInput] = useState('');
+
   const [loading, setLoading] = useState(false);
   const [hasProfile, setHasProfile] = useState(null);
   const scrollContainerRef = useRef(null);
+  const abortControllerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      // Cleanup: Abort any pending request if component unmounts
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  const cancelRequest = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      // Remove the latest thinking message
+      setMessages(prev => prev.filter(m => !m.typing));
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (scrollContainerRef.current) {
@@ -140,8 +176,15 @@ export default function AIAssistant({ onClose }) {
     setMessages(prev => [...prev, userMsg, thinkingMsg]);
     setLoading(true);
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
-      const { data } = await axios.post(`${API}/agent/ask`, { question: q, userId: 'default_user' });
+      const { data } = await axios.post(`${API}/agent/ask`, 
+        { question: q, userId: 'default_user' },
+        { signal: controller.signal }
+      );
+
       setHasProfile(data.hasProfile);
       setMessages(prev => prev.map(m =>
         m.id === thinkingMsg.id
@@ -188,9 +231,11 @@ export default function AIAssistant({ onClose }) {
             <ChatMessage 
               key={msg.id} 
               msg={msg} 
+              dots={dots}
               onRetry={(msg.role === 'assistant' && !msg.typing && idx > 0 && messages[idx-1].role === 'user') ? () => sendMessage(messages[idx-1].content) : null}
             />
           ))}
+
         </SpaceBetween>
         
         {messages.length === 0 && (
@@ -227,13 +272,13 @@ export default function AIAssistant({ onClose }) {
               />
             </div>
             <button
-              onClick={() => sendMessage()}
-              disabled={loading || !input.trim()}
+              onClick={loading ? cancelRequest : () => sendMessage()}
+              disabled={!loading && !input.trim()}
               style={{
                 background: 'transparent',
                 border: 'none',
-                cursor: (loading || !input.trim()) ? 'not-allowed' : 'pointer',
-                opacity: (loading || !input.trim()) ? 0.3 : 1,
+                cursor: (!loading && !input.trim()) ? 'not-allowed' : 'pointer',
+                opacity: (!loading && !input.trim()) ? 0.3 : 1,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -242,8 +287,13 @@ export default function AIAssistant({ onClose }) {
                 transition: 'opacity 0.2s ease'
               }}
             >
-              <TbCircleArrowUpFilled size={32} color="var(--color-background-button-primary-default)" />
+              {loading ? (
+                <MdCancel size={32} color="#ef4444" title="Cancel Request" />
+              ) : (
+                <TbCircleArrowUpFilled size={32} color="var(--color-background-button-primary-default)" title="Send Message" />
+              )}
             </button>
+
           </div>
           <Box variant="small" color="text-body-secondary" textAlign="center">
             Genie AI can make mistakes
@@ -262,22 +312,25 @@ export default function AIAssistant({ onClose }) {
         
         .user-message-bubble {
           padding: 8px 16px;
-          border-radius: 9999px; /* Official pill shape */
+          border-radius: 18px; /* Smoother base radius */
+          border-top-right-radius: 4px; /* The "edge" that makes it a bubble */
           background: transparent;
-          border: 1.5px solid #0073bb; /* Match normal Cloudscape button blue */
+          border: 1.5px solid #0073bb;
           color: #0073bb;
           font-weight: 500;
           font-size: 13px;
           line-height: 1.2;
+          position: relative;
         }
 
         [data-awsui-color-mode="dark"] .user-message-bubble,
         .awsui-dark-mode .user-message-bubble {
           background: transparent !important;
-          border: 1.5px solid #38bdf8 !important; /* Match your Cyan suggested actions */
+          border: 1.5px solid #38bdf8 !important;
           color: #38bdf8 !important;
           box-shadow: 0 0 10px rgba(56, 189, 248, 0.15);
         }
+
 
 
 
