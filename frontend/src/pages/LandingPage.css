@@ -137,8 +137,8 @@
 }
 
 .landing-subtext {
-  font-size: clamp(16px, 2vw, 20px);
-  line-height: 1.6;
+  font-size: clamp(10px, 1vw, 10px);
+  line-height: 1;
   color: var(--lp-muted);
   max-width: 560px;
   margin: 0 0 40px;

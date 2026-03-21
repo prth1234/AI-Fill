@@ -194,10 +194,9 @@ export default function LandingPage() {
           <span className="landing-headline-accent">Apply everywhere.</span>
         </h1>
 
-        <p className="landing-subtext">
-          AutoFill securely stores your profile and uses advanced AI to handle every application field — from the first text box to the final submit button. Perfect for Software Engineers, Data Engineers, and ambitious professionals.
-        </p>
-
+<p className="landing-subtext">
+  AUTOFILL SECURELY STORES YOUR PROFILE AND USES AI TO FILL APPLICATIONS.
+</p>
         <div className="landing-actions">
           <button className="landing-btn-primary" onClick={() => setShowModal(true)}>
             Get started
