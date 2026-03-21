@@ -726,16 +726,17 @@ async def get_jobs():
 # ─── Simulation Stub ──────────────────────────────────────────────────────────
 async def simulate_session(session_id: str):
     steps = [
-        {"pct": 10, "log": "🌐 Browser launched, navigating to URL…"},
-        {"pct": 20, "log": "🔍 Detecting form platform…"},
-        {"pct": 30, "log": "📋 Found 24 form fields. Fetching user profile from OpenSearch…"},
-        {"pct": 45, "log": "🧠 LLM generating answers for Personal Info section…"},
-        {"pct": 55, "log": "✍️  Filling: Name, Email, Phone, Location…"},
-        {"pct": 65, "log": "🧠 LLM generating answers for Work Experience section…"},
-        {"pct": 75, "log": "✍️  Filling: Job titles, company names, dates, descriptions…"},
-        {"pct": 85, "log": "🧠 LLM generating answers for Skills & Education…"},
-        {"pct": 95, "log": "✅ All fields filled. Pausing for your review…", "pause": True},
+        {"pct": 10,  "log": "Browser launched, navigating to URL…"},
+        {"pct": 20,  "log": "Detecting form platform…"},
+        {"pct": 30,  "log": "Found 24 form fields. Fetching user profile from DB…"},
+        {"pct": 45,  "log": "LLM generating answers for Personal Info section…"},
+        {"pct": 55,  "log": "Filling: Name, Email, Phone, Location…"},
+        {"pct": 65,  "log": "LLM generating answers for Work Experience section…"},
+        {"pct": 75,  "log": "Filling: Job titles, company names, dates, descriptions…"},
+        {"pct": 85,  "log": "LLM generating answers for Skills & Education…"},
+        {"pct": 95,  "log": "All fields filled. Pausing for your review…", "pause": True},
     ]
+
     
     for step in steps:
         await asyncio.sleep(2)
