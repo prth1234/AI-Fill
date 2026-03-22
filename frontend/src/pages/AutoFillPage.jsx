@@ -44,6 +44,9 @@ export default function AutoFillPage() {
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState([]);
   const [sessionId, setSessionId] = useState(null);
+  const [pendingQuestions, setPendingQuestions] = useState([]);
+  const [draftAnswers, setDraftAnswers] = useState([]);
+  const [review, setReview] = useState(null);
 
   const addLog = (msg, level = 'info') =>
     setLogs(prev => [...prev, { id: Date.now(), msg, level, time: new Date().toLocaleTimeString() }]);
@@ -56,21 +59,64 @@ export default function AutoFillPage() {
     addLog(`Starting AutoFill session for: ${url}`, 'info');
     addLog(`Platform: ${platform?.label || 'auto-detect'}`, 'info');
     try {
-      const res = await axios.post(`${API}/autofill/start`, { url, platform: platform?.value, headless, jobContext });
+      const res = await axios.post(`${API}/autofill/interactive/start`, { 
+        url, 
+        platform: platform?.value, 
+        headless, 
+        jobContext,
+        userId: 'default_user',
+        reviewBeforeSubmit: true,
+        fields: [] // Backend will detect fields or we can pass some if we had them
+      });
+      
       setSessionId(res.data.sessionId);
+      setPendingQuestions(res.data.pendingQuestions || []);
+      setDraftAnswers(res.data.draftAnswers || []);
+      setReview(res.data.review);
+      
       addLog(`Session ID: ${res.data.sessionId}`, 'success');
       addLog('Playwright browser launching…', 'info');
-      // Poll for progress
+      
+      // Poll for progress and state updates
       const poll = setInterval(async () => {
         try {
           const p = await axios.get(`${API}/autofill/status/${res.data.sessionId}`);
-          setProgress(p.data.progress || 0);
-          if (p.data.log) addLog(p.data.log, p.data.level || 'info');
-          if (p.data.status === 'paused') { setStatus('paused'); clearInterval(poll); }
-          if (p.data.status === 'done') { setStatus('done'); setProgress(100); clearInterval(poll); addLog('AutoFill complete!', 'success'); }
-          if (p.data.status === 'error') { setStatus('error'); clearInterval(poll); addLog(`Error: ${p.data.error}`, 'error'); }
-        } catch { clearInterval(poll); }
-      }, 1500);
+          const data = p.data;
+          
+          setProgress(data.progress || 0);
+          setPendingQuestions(data.pendingQuestions || []);
+          setDraftAnswers(data.draftAnswers || []);
+          setReview(data.review);
+          
+          if (data.log) addLog(data.log, data.level || 'info');
+          
+          if (data.status === 'awaiting_user_input') {
+            setStatus('paused');
+            // We don't necessarily clear interval here if we want to see logs, 
+            // but for interactive it might be better to wait for response
+          }
+          
+          if (data.status === 'review') {
+            setStatus('paused');
+            addLog('Ready for final review.', 'success');
+          }
+
+          if (data.status === 'done' || data.status === 'submitted') {
+            setStatus('done');
+            setProgress(100);
+            clearInterval(poll);
+            addLog('AutoFill complete!', 'success');
+          }
+          
+          if (data.status === 'error') {
+            setStatus('error');
+            clearInterval(poll);
+            addLog(`Error: ${data.error}`, 'error');
+          }
+        } catch { 
+          clearInterval(poll); 
+        }
+      }, 2000);
     } catch (err) {
       setStatus('error');
       addLog(`Failed to start: ${err.message}`, 'error');
@@ -79,12 +125,44 @@ export default function AutoFillPage() {
 
   const handleApprove = async () => {
     if (!sessionId) return;
-    addLog('Submitting application…', 'info');
+    addLog('Submitting final application draft…', 'info');
     setStatus('running');
     try {
-      await axios.post(`${API}/autofill/approve/${sessionId}`);
+      const res = await axios.post(`${API}/autofill/review/${sessionId}/submit`);
+      if (res.data.success) {
+        setStatus('done');
+        setProgress(100);
+        addLog('Application successfully submitted!', 'success');
+      }
     } catch (err) {
-      addLog(`Approve failed: ${err.message}`, 'error');
+      addLog(`Submission failed: ${err.response?.data?.detail || err.message}`, 'error');
+      setStatus('paused');
+    }
+  };
+
+  const handleRespondent = async (fieldId, answer, questionText) => {
+    if (!sessionId) return;
+    try {
+      addLog(`Answering: ${questionText}...`, 'info');
+      const res = await axios.post(`${API}/autofill/interactive/respond/${sessionId}`, {
+        userId: 'default_user',
+        answers: [{
+          fieldId,
+          answer,
+          saveForFuture: true,
+          questionText
+        }]
+      });
+      
+      setPendingQuestions(res.data.pendingQuestions || []);
+      setDraftAnswers(res.data.draftAnswers || []);
+      setReview(res.data.review);
+      
+      if (res.data.status !== 'awaiting_user_input') {
+        setStatus('running'); // Resume simulation/polling logic handled by interval usually
+      }
+    } catch (err) {
+      addLog(`Failed to send answer: ${err.message}`, 'error');
     }
   };
 
@@ -154,35 +232,112 @@ export default function AutoFillPage() {
         </Container>
 
         {status !== 'idle' && (
-          <Container header={<Header variant="h3">Session Progress</Header>}>
-            <SpaceBetween size="m">
-              <StatusIndicator type={
-                status === 'running' ? 'loading' :
-                status === 'paused' ? 'warning' :
-                status === 'done' ? 'success' : 'error'
-              }>
-                {status === 'running' ? 'AutoFill in progress…' :
-                 status === 'paused' ? 'Paused — Review and approve submission' :
-                 status === 'done' ? 'Application submitted successfully!' : 'Session ended with errors'}
-              </StatusIndicator>
-              <ProgressBar
-                value={progress}
-                label="Form completion"
-                description={`${progress}% of fields processed`}
-                status={status === 'error' ? 'error' : status === 'done' ? 'success' : 'in-progress'}
-              />
-              {status === 'paused' && (
-                <Alert type="warning" header="Review Required">
-                  The AI has filled all fields. Click <strong>Approve &amp; Submit</strong> to finalize, or <strong>Stop Session</strong> to cancel.
-                </Alert>
-              )}
-              {status === 'done' && (
-                <Alert type="success" header="Application Submitted!">
-                  The application was submitted successfully. Check <strong>Job History</strong> for details.
-                </Alert>
-              )}
-            </SpaceBetween>
-          </Container>
+          <SpaceBetween size="l">
+            <Container header={<Header variant="h3">Session Progress</Header>}>
+              <SpaceBetween size="m">
+                <StatusIndicator type={
+                  status === 'running' ? 'loading' :
+                  status === 'paused' ? 'warning' :
+                  status === 'done' ? 'success' : 'error'
+                }>
+                  {status === 'running' ? 'AutoFill in progress…' :
+                  status === 'paused' ? (pendingQuestions.length > 0 ? 'Awaiting your input…' : 'Review and approve submission') :
+                  status === 'done' ? 'Application submitted successfully!' : 'Session ended with errors'}
+                </StatusIndicator>
+                <ProgressBar
+                  value={progress}
+                  label="Form completion"
+                  description={`${progress}% of fields processed (${review?.filledFields || 0}/${review?.totalFields || 0} fields)`}
+                  status={status === 'error' ? 'error' : status === 'done' ? 'success' : 'in-progress'}
+                />
+                {status === 'paused' && pendingQuestions.length === 0 && (
+                  <Alert type="warning" header="Ready for Submission">
+                    The AI has filled all detected fields. Please review the <strong>Draft Answers</strong> below and click <strong>Approve &amp; Submit</strong> to finalize.
+                  </Alert>
+                )}
+                {status === 'done' && (
+                  <Alert type="success" header="Application Submitted!">
+                    The application was submitted successfully. Check <strong>Job History</strong> for details.
+                  </Alert>
+                )}
+              </SpaceBetween>
+            </Container>
+
+            {pendingQuestions.length > 0 && (
+              <Container header={<Header variant="h3" description="The AI needs clarification on these fields">Interactive Questions</Header>}>
+                <SpaceBetween size="l">
+                  {pendingQuestions.map((q) => (
+                    <FormField key={q.fieldId} label={q.label} description={q.questionText}>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+                        <div style={{ flex: 1 }}>
+                          {q.options && q.options.length > 0 ? (
+                            <Select
+                              selectedOption={q.answer ? { label: q.answer, value: q.answer } : (q.recommendation ? { label: q.recommendation, value: q.recommendation } : null)}
+                              onChange={({ detail }) => {
+                                q.answer = detail.selectedOption.value;
+                                setPendingQuestions([...pendingQuestions]);
+                              }}
+                              options={q.options.map(o => ({ label: o, value: o }))}
+                              placeholder="Select an option"
+                            />
+                          ) : (
+                            <Input
+                              value={q.answer || q.recommendation || ''}
+                              onChange={({ detail }) => {
+                                q.answer = detail.value;
+                                setPendingQuestions([...pendingQuestions]);
+                              }}
+                              placeholder={q.recommendation ? `Suggested: ${q.recommendation}` : "Your answer..."}
+                            />
+                          )}
+                        </div>
+                        <Button 
+                          variant="primary" 
+                          onClick={() => handleRespondent(q.fieldId, q.answer || q.recommendation, q.questionText)}
+                          disabled={!(q.answer || q.recommendation)}
+                        >
+                          Confirm
+                        </Button>
+                      </div>
+                    </FormField>
+                  ))}
+                </SpaceBetween>
+              </Container>
+            )}
+
+            {draftAnswers.length > 0 && (
+              <Container header={<Header variant="h3" counter={`(${draftAnswers.length})`}>Draft Answers</Header>}>
+                <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                    <thead>
+                      <tr style={{ textAlign: 'left', borderBottom: '1px solid #eaeded' }}>
+                        <th style={{ padding: '8px' }}>Field</th>
+                        <th style={{ padding: '8px' }}>AI Answer</th>
+                        <th style={{ padding: '8px' }}>Confidence</th>
+                        <th style={{ padding: '8px' }}>Source</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {draftAnswers.map((a, i) => (
+                        <tr key={i} style={{ borderBottom: '1px solid #f2f3f3' }}>
+                          <td style={{ padding: '8px', fontWeight: 500 }}>{a.label}</td>
+                          <td style={{ padding: '8px' }}>{a.value}</td>
+                          <td style={{ padding: '8px' }}>
+                            <StatusIndicator type={a.confidence > 0.9 ? 'success' : 'warning'}>
+                              {Math.round(a.confidence * 100)}%
+                            </StatusIndicator>
+                          </td>
+                          <td style={{ padding: '8px' }}>
+                            <Box color="text-status-inactive" variant="small">{a.source}</Box>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Container>
+            )}
+          </SpaceBetween>
         )}
 
         <Container>
