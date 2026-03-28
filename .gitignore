@@ -1,0 +1,29 @@
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Node modules
+node_modules/
+dist/
+build/
+.next/
+*.log
+
+# Backend specific
+backend/.venv/
+backend/__pycache__/
+
+# OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.env
+
+# Playwright drivers (usually in venv but just in case)
+**/playwright/driver/

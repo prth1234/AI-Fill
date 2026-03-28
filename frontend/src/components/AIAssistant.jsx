@@ -16,7 +16,9 @@ import {
   TbThumbUpFilled, 
   TbThumbDownFilled,
   TbPlus,
-  TbTrash
+  TbTrash,
+  TbMaximize,
+  TbMinimize
 } from "react-icons/tb";
 import { FaStopCircle } from "react-icons/fa";
 import { MdHistory, MdArrowBack } from "react-icons/md";
@@ -37,6 +39,64 @@ const SUGGESTED_QUESTIONS = [
   'How complete is my profile?',
 ];
 
+function CustomCodeBlock({ language, value }) {
+  const [copied, setCopied] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="custom-code-block" style={{ margin: '8px 0', border: '1px solid var(--color-border-container-divider, rgba(128,128,128,0.2))', borderRadius: '8px', overflow: 'hidden', background: 'rgba(128,128,128,0.05)', maxWidth: '100%' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 12px', background: 'rgba(128,128,128,0.1)', borderBottom: '1px solid var(--color-border-container-divider, rgba(128,128,128,0.2))', fontSize: '12px', color: 'var(--color-text-body-secondary)', fontFamily: 'inherit' }}>
+        <span style={{ textTransform: 'uppercase', fontWeight: 600, fontSize: '11px', letterSpacing: '0.05em' }}>{language || 'text'}</span>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button onClick={handleCopy} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'transparent', border: 'none', cursor: 'pointer', color: copied ? '#22c55e' : 'inherit', padding: 0 }}>
+            {copied ? <TbCheck size={14} /> : <TbCopy size={14} />} {copied ? 'Copied!' : 'Copy'}
+          </button>
+          <button onClick={() => setExpanded(!expanded)} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'transparent', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0 }}>
+            {expanded ? <TbMinimize size={14} /> : <TbMaximize size={14} />} {expanded ? 'Collapse' : 'Expand'}
+          </button>
+        </div>
+      </div>
+      {/* Content */}
+      <div style={{ maxHeight: expanded ? 'none' : '300px', overflowY: 'auto' }}>
+        <pre style={{ margin: 0, padding: '12px', background: 'transparent', border: 'none', borderRadius: 0, overflowX: 'auto', maxWidth: '100%', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace', fontSize: '13px' }}>
+          <code style={{ background: 'transparent', padding: 0, color: 'inherit', fontSize: 'inherit' }}>
+            {value}
+          </code>
+        </pre>
+      </div>
+    </div>
+  );
+}
+
+const markdownComponents = {
+  pre({ children }) {
+    return <div className="markdown-pre-wrapper">{children}</div>;
+  },
+  code({ node, inline, className, children, ...props }) {
+    const match = /language-(\w+)/.exec(className || '');
+    if (!inline && match) {
+      return <CustomCodeBlock language={match[1]} value={String(children).replace(/\n$/, '')} />;
+    } else if (!inline) {
+      const stringVal = String(children);
+      if (stringVal.includes('\n')) {
+        return <CustomCodeBlock language="text" value={stringVal.replace(/\n$/, '')} />;
+      }
+    }
+    return (
+      <code className={className} {...props}>
+        {children}
+      </code>
+    );
+  }
+};
+
 function ChatMessage({ msg, onRetry, dots }) {
 
   const isUser = msg.role === 'user';
@@ -52,10 +112,11 @@ function ChatMessage({ msg, onRetry, dots }) {
   return (
     <Box margin={{ bottom: 'm' }}>
       <div style={{ display: 'flex', flexDirection: isUser ? 'row-reverse' : 'row', gap: '8px', alignItems: 'flex-start' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxWidth: '85%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxWidth: '85%', minWidth: 0 }}>
           <div className={isUser ? 'user-message-bubble' : (msg.typing ? '' : 'assistant-message-bubble')} style={{
             minWidth: !isUser && !msg.typing ? '240px' : 'auto',
-            padding: msg.typing ? '4px 0' : undefined
+            padding: msg.typing ? '4px 0' : undefined,
+            overflowX: 'auto'
           }}>
             {msg.typing ? (
               <Box variant="small" color="inherit">
@@ -77,7 +138,11 @@ function ChatMessage({ msg, onRetry, dots }) {
                   <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
                 ) : (
                   <div className="markdown-content">
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    <ReactMarkdown
+                      components={markdownComponents}
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
                   </div>
                 )}
               </div>
@@ -433,6 +498,34 @@ export default function AIAssistant({ onClose }) {
         .markdown-content li { margin-bottom: 0.25rem; list-style-type: disc; }
         .markdown-content li > p { margin: 0; display: inline; }
         .markdown-content strong { font-weight: 700; color: inherit; }
+        
+        .markdown-content pre {
+          background: rgba(128, 128, 128, 0.1);
+          padding: 12px;
+          border-radius: 8px;
+          overflow-x: auto;
+          max-width: 100%;
+          border: 1px solid rgba(128, 128, 128, 0.2);
+          margin: 8px 0;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+          font-size: 13px;
+        }
+        
+        .markdown-content code {
+          background: rgba(128, 128, 128, 0.1);
+          padding: 2px 4px;
+          border-radius: 4px;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+          font-size: 13px;
+        }
+        
+        .markdown-content pre code {
+          background: transparent;
+          padding: 0;
+          border-radius: 0;
+          font-size: inherit;
+        }
+
         .flex-wrap { flex-wrap: wrap; }
         
         .history-item:hover {
